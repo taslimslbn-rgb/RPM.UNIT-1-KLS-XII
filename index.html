@@ -1,0 +1,1382 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Virtual Lab — The Story of a Friendly Future</title>
+<style>
+:root{
+  --navy:#071b2e; --navy2:#0d2a44; --teal:#0fb9b1; --teal2:#0a8f88;
+  --cyan:#4fd8e0; --amber:#f5b942; --amber2:#e09a1f; --leaf:#6bd68f;
+  --ink:#eaf6f6; --muted:#9fc4c6; --danger:#e06a6a; --card:#0f2f4a;
+  --radius:14px;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{width:100%; height:100%; overflow:hidden; background:#02090f; font-family:'Segoe UI',Tahoma,sans-serif; color:var(--ink);}
+button{font-family:inherit; cursor:pointer;}
+
+/* ---------- SPLASH ---------- */
+#splash{
+  position:fixed; inset:0; z-index:200;
+  background:radial-gradient(circle at 30% 20%, #123a52 0%, #071b2e 60%, #030d16 100%);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+  text-align:center; padding:20px;
+}
+#splash .badge{width:110px; height:110px; border-radius:50%; background:conic-gradient(var(--teal),var(--amber),var(--leaf),var(--teal)); display:flex; align-items:center; justify-content:center; box-shadow:0 0 40px rgba(15,185,177,.5); animation:spin 6s linear infinite;}
+#splash .badge span{background:var(--navy); width:88px; height:88px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:34px;}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+#splash h1{font-size:clamp(20px,3vw,32px); color:var(--cyan); letter-spacing:.5px;}
+#splash p{color:var(--muted); max-width:560px; font-size:14px; line-height:1.5;}
+#splash .bar{width:280px; height:8px; background:#0a2436; border-radius:6px; overflow:hidden; border:1px solid #1c4a63;}
+#splash .bar i{display:block; height:100%; width:0%; background:linear-gradient(90deg,var(--teal),var(--leaf)); transition:width .1s;}
+#splash .pct{font-size:12px; color:var(--muted);}
+#startBtn{margin-top:8px; padding:12px 34px; border-radius:30px; border:none; background:linear-gradient(90deg,var(--teal),var(--leaf)); color:#04241f; font-weight:700; font-size:15px; letter-spacing:.4px; display:none; box-shadow:0 6px 18px rgba(107,214,143,.35);}
+#startBtn:active{transform:scale(.97);}
+
+/* ---------- STAGE (16:9) ---------- */
+#stageWrap{position:fixed; inset:0; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden;}
+#stage{
+  width:1280px; height:720px; position:relative; transform-origin:center center;
+  background:linear-gradient(160deg,#08202f 0%, #0a2c40 55%, #082334 100%);
+  display:flex; flex-direction:column; overflow:hidden; border-radius:6px;
+  box-shadow:0 0 60px rgba(0,0,0,.6);
+}
+
+/* header */
+#hdr{display:flex; align-items:center; justify-content:space-between; padding:10px 20px; background:rgba(3,15,25,.65); border-bottom:1px solid #163c52; flex:0 0 auto;}
+#hdr .title{display:flex; align-items:center; gap:10px;}
+#hdr .title .logo{width:34px; height:34px; border-radius:50%; background:conic-gradient(var(--teal),var(--amber),var(--leaf)); display:flex; align-items:center; justify-content:center; font-size:16px;}
+#hdr .title .logo span{background:var(--navy); width:27px; height:27px; border-radius:50%; display:flex; align-items:center; justify-content:center;}
+#hdr h1{font-size:15px; color:var(--cyan); line-height:1.1;}
+#hdr h1 small{display:block; font-size:10px; color:var(--muted); font-weight:400;}
+#hdr .tools{display:flex; gap:8px; align-items:center;}
+#hdr .tools button{background:#103349; border:1px solid #1c4a63; color:var(--ink); border-radius:8px; width:32px; height:32px; font-size:14px;}
+#hdr .tools button:hover{background:#164460;}
+#meetingSel{background:#103349; border:1px solid #1c4a63; color:var(--ink); border-radius:8px; padding:6px 10px; font-size:12px;}
+
+/* nav tabs */
+#tabs{display:flex; gap:4px; padding:0 16px; background:rgba(3,15,25,.4); flex:0 0 auto; border-bottom:1px solid #163c52;}
+#tabs button{background:transparent; border:none; color:var(--muted); padding:9px 14px; font-size:12.5px; font-weight:600; border-bottom:3px solid transparent; letter-spacing:.3px;}
+#tabs button.active{color:var(--cyan); border-bottom-color:var(--teal);}
+#tabs button:hover{color:var(--ink);}
+#tabs .lockicon{font-size:10px; margin-left:3px;}
+
+/* main content */
+#content{flex:1 1 auto; position:relative; overflow:hidden; padding:16px 22px;}
+.pane{position:absolute; inset:0; padding:16px 22px; overflow-y:auto; display:none;}
+.pane.active{display:block;}
+.pane::-webkit-scrollbar{width:6px;} .pane::-webkit-scrollbar-thumb{background:#1c4a63; border-radius:4px;}
+
+h2.panehead{color:var(--amber); font-size:17px; margin-bottom:8px; display:flex; align-items:center; gap:8px;}
+.card{background:var(--card); border:1px solid #17415c; border-radius:var(--radius); padding:14px 16px; margin-bottom:12px;}
+.card h3{color:var(--cyan); font-size:13.5px; margin-bottom:6px;}
+.card p, .card li{font-size:12.5px; color:#d8ecec; line-height:1.55;}
+.card ul, .card ol{margin-left:18px; margin-top:4px;}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.pill{display:inline-block; background:#0a2436; border:1px solid #1c4a63; color:var(--leaf); font-size:11px; padding:3px 10px; border-radius:20px; margin:2px 4px 2px 0;}
+.tp-box{background:#0a2436; border-left:4px solid var(--amber); border-radius:8px; padding:10px 14px; font-size:12.5px; color:#f3e3c2;}
+.tp-box b{color:var(--amber);}
+
+/* meeting chips (theory/sim/lkpd) */
+.meet-chips{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;}
+.meet-chips button{background:#0a2436; border:1px solid #1c4a63; color:var(--muted); padding:6px 12px; border-radius:20px; font-size:11.5px;}
+.meet-chips button.active{background:var(--teal); color:#03211f; border-color:var(--teal); font-weight:700;}
+
+/* simulation widgets */
+.sim-area{display:flex; gap:14px; flex-wrap:wrap;}
+.sim-box{flex:1; min-width:260px; background:#0a2436; border:1px solid #1c4a63; border-radius:12px; padding:14px;}
+.chip-word{display:inline-block; background:#123349; border:1px solid #245066; padding:6px 12px; border-radius:8px; margin:4px; font-size:12.5px;}
+.chip-word.sel{background:var(--teal); color:#03211f; border-color:var(--teal); font-weight:700;}
+.chip-word.correct{background:var(--leaf); color:#04241f; border-color:var(--leaf);}
+.chip-word.wrong{background:var(--danger); color:#2a0a0a; border-color:var(--danger);}
+.order-slot{display:inline-flex; align-items:center; justify-content:center; min-width:34px; height:34px; background:#04141f; border:1px dashed #245066; border-radius:8px; margin:3px; padding:0 10px; font-size:12px; color:var(--muted);}
+.two-col{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+.zone{min-height:120px; background:#04141f; border:2px dashed #245066; border-radius:10px; padding:10px;}
+.zone h4{font-size:11.5px; color:var(--cyan); margin-bottom:6px;}
+.passage{font-size:13px; line-height:1.9; color:#dfeeee;}
+.passage span.word{cursor:pointer; padding:1px 2px; border-radius:4px;}
+.passage span.word:hover{background:#164460;}
+.passage span.word.picked{background:var(--teal); color:#03211f; font-weight:700;}
+.passage span.word.correct{background:var(--leaf); color:#04241f; font-weight:700;}
+.passage span.word.wrong{background:var(--danger);}
+select.fb{background:#0a2436; border:1px solid #245066; color:var(--ink); border-radius:6px; padding:3px 8px; font-size:12px;}
+.actrow{display:flex; gap:10px; margin-top:12px;}
+.btn{background:linear-gradient(90deg,var(--teal),var(--teal2)); color:#03211f; border:none; border-radius:8px; padding:8px 16px; font-size:12.5px; font-weight:700;}
+.btn.secondary{background:#164460; color:var(--ink);}
+.btn.amber{background:linear-gradient(90deg,var(--amber),var(--amber2)); color:#2a1900;}
+.feedback{margin-top:10px; font-size:12.5px; font-weight:600;}
+.feedback.ok{color:var(--leaf);} .feedback.no{color:var(--danger);}
+
+/* LKPD quiz */
+.quiz-wrap{max-width:820px; margin:0 auto;}
+.qcard{background:#0a2436; border:1px solid #1c4a63; border-radius:12px; padding:16px; margin-bottom:12px;}
+.qcard .qn{color:var(--amber); font-size:12px; margin-bottom:6px;}
+.qcard .qtext{font-size:13.5px; margin-bottom:10px; color:var(--ink);}
+.opt{display:block; width:100%; text-align:left; background:#0f2f4a; border:1px solid #1c4a63; color:var(--ink); border-radius:8px; padding:8px 12px; margin-bottom:6px; font-size:12.5px;}
+.opt.sel{border-color:var(--teal); background:#123c47; font-weight:700;}
+#lkpdIntro input{width:100%; padding:9px 12px; border-radius:8px; border:1px solid #245066; background:#04141f; color:var(--ink); font-size:13px; margin-top:6px;}
+.center{display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; text-align:center; gap:12px;}
+
+/* lock / results */
+.lockscreen{display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:12px;}
+.lockscreen .icon{font-size:42px;}
+.lockscreen input{padding:9px 14px; border-radius:8px; border:1px solid #245066; background:#04141f; color:var(--ink); font-size:14px; width:220px; text-align:center;}
+table.res{width:100%; border-collapse:collapse; font-size:12px;}
+table.res th{background:#103349; color:var(--cyan); padding:7px 8px; text-align:left; position:sticky; top:0;}
+table.res td{padding:6px 8px; border-bottom:1px solid #163c52;}
+table.res tr:hover td{background:#0f2f4a;}
+
+/* developer */
+.dev-card{display:flex; gap:16px; align-items:center;}
+.dev-photo{width:100px; height:100px; border-radius:50%; background:linear-gradient(135deg,var(--teal),var(--amber)); display:flex; align-items:center; justify-content:center; font-size:34px; font-weight:800; color:#04241f; flex:0 0 auto; overflow:hidden;}
+.dev-photo img{width:100%; height:100%; object-fit:cover; border-radius:50%;}
+
+/* developer profile card */
+.devprofile-card{
+  display:flex; align-items:center; gap:22px; padding:20px 24px; margin-bottom:12px;
+  background:linear-gradient(135deg,#0f2f4a 0%, #0a2436 100%);
+  border:1px solid #1c4a63; border-radius:16px; position:relative; overflow:hidden;
+}
+.devprofile-card::before{content:''; position:absolute; top:-40px; right:-40px; width:160px; height:160px; border-radius:50%; background:radial-gradient(circle,rgba(15,185,177,.18),transparent 70%);}
+.devphoto-ring{
+  flex:0 0 auto; width:108px; height:108px; border-radius:50%; padding:4px;
+  background:conic-gradient(var(--teal),var(--amber),var(--leaf),var(--cyan),var(--teal));
+  display:flex; align-items:center; justify-content:center; box-shadow:0 4px 18px rgba(15,185,177,.3);
+}
+.devphoto-ring img{width:100%; height:100%; border-radius:50%; object-fit:cover; border:3px solid #0a2436; display:block;}
+.devprofile-info{flex:1; position:relative; z-index:1;}
+.devprofile-info h3{font-size:17px; color:var(--ink); margin-bottom:2px;}
+.devprofile-info .devrole{font-size:12.5px; color:var(--cyan); font-weight:600; margin-bottom:8px;}
+.devbadges{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;}
+.devbadge{background:#103349; border:1px solid #245066; color:var(--muted); font-size:11px; padding:4px 10px; border-radius:20px;}
+.devmeta{display:flex; flex-direction:column; gap:4px; background:#04141f; border:1px solid #17415c; border-radius:10px; padding:8px 12px;}
+.devmeta-row{display:flex; gap:10px; font-size:12px;}
+.devmeta-label{color:var(--amber); font-weight:700; min-width:52px;}
+.devmeta-val{color:#d8ecec;}
+
+/* footer */
+#ftr{flex:0 0 auto; display:flex; justify-content:space-between; align-items:center; padding:8px 20px; background:rgba(3,15,25,.6); border-top:1px solid #163c52; font-size:11px; color:var(--muted);}
+#ftr .fbtn{background:#103349; border:1px solid #1c4a63; color:var(--ink); border-radius:8px; padding:6px 14px; font-size:11.5px;}
+#rotateOverlay{position:fixed; inset:0; background:#02090f; z-index:500; display:none; align-items:center; justify-content:center; flex-direction:column; gap:10px; color:var(--amber); text-align:center; padding:20px;}
+
+/* ---------- AUTO-ROTATE TO LANDSCAPE ON MOBILE (Android & iPhone) ---------- */
+/* CSS-based force-landscape: rotates the whole stage 90deg so the lab always
+   renders in landscape 16:9 even if the phone is physically held upright.
+   Applies to phone-width screens in portrait orientation only. */
+@media screen and (max-width: 700px) and (orientation: portrait){
+  html, body{ width:100vh; height:100vw; overflow:hidden; }
+  #stageWrap, #splash, #rotateOverlay{
+    position:fixed; top:0; left:100%;
+    width:100vh; height:100vw;
+    transform-origin:0 0;
+    transform:rotate(90deg);
+  }
+}
+/* iOS Safari address-bar safe height */
+@supports (height: 100dvh){
+  html, body{ height:100dvh; }
+  #stageWrap{ height:100dvh; }
+}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="badge"><span>🌱</span></div>
+  <h1>Virtual Lab — The Story of a Friendly Future</h1>
+  <p>Narrative Text · Renewable Energy · Past &amp; Future Tense · Action Verbs · Storytelling<br>
+  Bahasa Inggris Wajib — Kelas XII, Fase F — Life Today Unit 1</p>
+  <div class="bar"><i id="loadBar"></i></div>
+  <div class="pct" id="loadPct">Loading... 0%</div>
+  <button id="startBtn">▶ Mulai</button>
+</div>
+
+<!-- STAGE -->
+<div id="stageWrap">
+<div id="stage">
+  <div id="hdr">
+    <div class="title">
+      <div class="logo"><span>🌱</span></div>
+      <h1>The Story of a Friendly Future<small>Unit 1 · Narrative Text · Life Today Kelas XII Fase F</small></h1>
+    </div>
+    <div class="tools">
+      <select id="meetingSel"></select>
+      <button id="soundBtn" title="Toggle sound">🔊</button>
+      <button id="resetBtn" title="Reset">↺</button>
+      <button id="fsBtn" title="Fullscreen">⛶</button>
+    </div>
+  </div>
+
+  <div id="tabs">
+    <button data-tab="procedure" class="active">Procedure</button>
+    <button data-tab="otp">OTP <span class="lockicon">🔒</span></button>
+    <button data-tab="theory">Theory</button>
+    <button data-tab="simulation">Simulation</button>
+    <button data-tab="lkpd">Worksheet</button>
+    <button data-tab="simkey">Simulation Answer Key <span class="lockicon">🔒</span></button>
+    <button data-tab="lkpdkey">Worksheet Answer Key <span class="lockicon">🔒</span></button>
+    <button data-tab="results">Results <span class="lockicon">🔒</span></button>
+    <button data-tab="developer">Developer</button>
+  </div>
+
+  <div id="content">
+
+    <!-- PROCEDURE -->
+    <section class="pane active" id="pane-procedure">
+      <h2 class="panehead">📋 Procedure / Panduan Penggunaan</h2>
+      <div class="grid2">
+        <div class="card">
+          <h3>How to Use This Virtual Lab</h3>
+          <ol>
+            <li>Pilih pertemuan (Meeting 1–9) pada dropdown di pojok kanan atas. Setiap Meeting (1–9) memerlukan OTP dari guru pada tab Theory, Simulation, dan Worksheet.</li>
+            <li>Buka tab <b>Theory</b> untuk mempelajari materi pertemuan tersebut.</li>
+            <li>Lanjutkan ke tab <b>Simulation</b> untuk berlatih secara interaktif.</li>
+            <li>Kerjakan tab <b>Worksheet</b> (LKPD) — isi nama lalu jawab soal Pilihan Ganda dan 5 soal Essay/Uraian.</li>
+            <li>Skor tersimpan otomatis dan hanya dapat dilihat guru melalui tab <b>Results</b> (OTP).</li>
+            <li>Tab <b>Simulation Answer Key</b> dan <b>Worksheet Answer Key</b> khusus guru (OTP) berisi kunci jawaban tiap pertemuan.</li>
+            <li>Tab <b>OTP</b> khusus guru (OTP) berisi daftar seluruh kode OTP Meeting 2–9 untuk Theory, Simulation, dan Worksheet — gunakan ini sebagai referensi guru sebelum menyampaikan OTP ke siswa.</li>
+            <li>Gunakan tombol ↺ untuk mereset progres, dan 🔊 untuk mengatur efek suara.</li>
+            <li>Lab Maya mendukung mode online (Google Apps Script) — bila sudah diaktifkan, hasil LKPD siswa dapat dilihat guru dari perangkat mana pun via tab Results. Lihat file Code.gs untuk panduan aktivasi.</li>
+          </ol>
+        </div>
+        <div class="card">
+          <h3>Capaian Pembelajaran (CP)</h3>
+          <p style="font-size:11.5px; color:var(--muted); margin-bottom:6px;">Berdasarkan Keputusan BSKAP No. 046/H/KR/2025 — Bahasa Inggris Tingkat Lanjut, Fase F</p>
+          <p>Pada akhir Fase F, peserta didik menggunakan bahasa Inggris untuk berkomunikasi sesuai dengan tujuan, konteks sosial, dan akademis dalam berbagai jenis teks, termasuk teks naratif, deskriptif, argumentatif, dan multimodal. Peserta didik mampu menyimak, membaca, memirsa, berbicara, menulis, serta mempresentasikan gagasan secara kritis dan reflektif, termasuk memahami dan menghasilkan teks naratif yang mengandung isu global seperti energi terbarukan, dengan penerapan unsur kebahasaan (tenses, action verbs) secara tepat.</p>
+        </div>
+      </div>
+      <div class="card">
+        <h3>9 Pertemuan — Peta Materi</h3>
+        <div id="procMap" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+      </div>
+    </section>
+
+    <!-- OTP (locked, teacher only reference) -->
+    <section class="pane" id="pane-otp">
+      <div id="otpLock" class="lockscreen">
+        <div class="icon">🔒</div>
+        <h3 style="color:var(--cyan)">Guru Access Only</h3>
+        <p style="font-size:12px; color:var(--muted); max-width:340px; text-align:center;">Masukkan OTP untuk melihat daftar OTP setiap Meeting (Theory, Simulation, Worksheet) dan OTP akses panel guru lainnya.</p>
+        <input type="password" id="otpPass" placeholder="OTP">
+        <button class="btn" onclick="checkOtpPass()">Buka</button>
+        <div id="otpErr" style="color:var(--danger); font-size:11.5px;"></div>
+      </div>
+      <div id="otpBody" style="display:none;">
+        <h2 class="panehead">🔑 OTP — Daftar Kode Akses</h2>
+        <div class="card">
+          <h3>OTP Panel Guru (berganti otomatis tiap 15 menit)</h3>
+          <p>Digunakan untuk membuka tab <b>Simulation Answer Key</b>, <b>Worksheet Answer Key</b>, dan <b>Results</b>.</p>
+          <div style="display:flex; gap:22px; flex-wrap:wrap; margin-top:12px;">
+            <div style="text-align:center;">
+              <div style="font-size:11px; color:var(--muted); margin-bottom:4px;">Simulation Answer Key</div>
+              <div id="otpPanelSimkey" style="font-size:22px; font-weight:800; letter-spacing:4px; color:var(--leaf);">----</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:11px; color:var(--muted); margin-bottom:4px;">Worksheet Answer Key</div>
+              <div id="otpPanelLkpdkey" style="font-size:22px; font-weight:800; letter-spacing:4px; color:var(--leaf);">----</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:11px; color:var(--muted); margin-bottom:4px;">Results</div>
+              <div id="otpPanelResults" style="font-size:22px; font-weight:800; letter-spacing:4px; color:var(--leaf);">----</div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div id="otpCountdown" style="font-size:22px; font-weight:800; color:var(--amber); letter-spacing:.5px;">Berganti otomatis dalam 15:00</div>
+          <p style="font-size:11px; color:var(--muted); margin-top:4px;">Kode dihitung otomatis dari jam perangkat — tidak memerlukan koneksi internet.</p>
+        </div>
+        <div class="card">
+          <h3>OTP Meeting 2–9 (Theory / Simulation / Worksheet)</h3>
+          <p style="margin-bottom:8px;">Sampaikan OTP berikut kepada siswa sesuai pertemuan yang sedang berlangsung. Setiap Meeting (1–9) kini memerlukan OTP.</p>
+          <div style="overflow-x:auto;">
+            <table class="res" id="otpTable">
+              <thead><tr><th>Meeting</th><th>OTP Theory</th><th>OTP Simulation</th><th>OTP Worksheet</th></tr></thead>
+              <tbody id="otpTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- THEORY -->
+    <section class="pane" id="pane-theory">
+      <h2 class="panehead">📘 Theory</h2>
+      <div class="meet-chips" id="chipsTheory"></div>
+      <div class="tp-box" id="tpBox" style="margin-bottom:10px;"></div>
+      <div id="theoryBody"></div>
+    </section>
+
+    <!-- SIMULATION -->
+    <section class="pane" id="pane-simulation">
+      <h2 class="panehead">🧪 Simulation</h2>
+      <div class="meet-chips" id="chipsSim"></div>
+      <div id="simBody"></div>
+    </section>
+
+    <!-- LKPD / WORKSHEET -->
+    <section class="pane" id="pane-lkpd">
+      <h2 class="panehead">📝 Worksheet (LKPD)</h2>
+      <div class="meet-chips" id="chipsLkpd"></div>
+      <div id="lkpdBody"></div>
+    </section>
+
+    <!-- SIMULATION ANSWER KEY (locked) -->
+    <section class="pane" id="pane-simkey">
+      <div id="simkeyLock" class="lockscreen">
+        <div class="icon">🔒</div>
+        <h3 style="color:var(--cyan)">Guru Access Only</h3>
+        <p style="font-size:12px; color:var(--muted); max-width:320px; text-align:center;">Masukkan OTP untuk melihat Kunci Jawaban Simulasi. OTP berganti otomatis tiap 15 menit — lihat kode terbaru di Tab OTP.</p>
+        <input type="password" id="simkeyPass" placeholder="OTP">
+        <button class="btn" onclick="checkSimkeyPass()">Buka</button>
+        <div id="simkeyErr" style="color:var(--danger); font-size:11.5px;"></div>
+      </div>
+      <div id="simkeyBody" style="display:none;">
+        <h2 class="panehead">🔑 Simulation Answer Key</h2>
+        <div class="meet-chips" id="chipsSimkey"></div>
+        <div id="simkeyContent"></div>
+      </div>
+    </section>
+
+    <!-- WORKSHEET ANSWER KEY (locked) -->
+    <section class="pane" id="pane-lkpdkey">
+      <div id="lkpdkeyLock" class="lockscreen">
+        <div class="icon">🔒</div>
+        <h3 style="color:var(--cyan)">Guru Access Only</h3>
+        <p style="font-size:12px; color:var(--muted); max-width:320px; text-align:center;">Masukkan OTP untuk melihat Kunci Jawaban Worksheet. OTP berganti otomatis tiap 15 menit — lihat kode terbaru di Tab OTP.</p>
+        <input type="password" id="lkpdkeyPass" placeholder="OTP">
+        <button class="btn" onclick="checkLkpdkeyPass()">Buka</button>
+        <div id="lkpdkeyErr" style="color:var(--danger); font-size:11.5px;"></div>
+      </div>
+      <div id="lkpdkeyBody" style="display:none;">
+        <h2 class="panehead">🔑 Worksheet Answer Key</h2>
+        <div class="meet-chips" id="chipsLkpdkey"></div>
+        <div id="lkpdkeyContent"></div>
+      </div>
+    </section>
+
+    <!-- RESULTS (locked) -->
+    <section class="pane" id="pane-results">
+      <div id="resultsLock" class="lockscreen">
+        <div class="icon">🔒</div>
+        <h3 style="color:var(--cyan)">Guru Access Only</h3>
+        <p style="font-size:12px; color:var(--muted); max-width:320px; text-align:center;">Masukkan OTP untuk melihat Hasil Kerja LKPD siswa. OTP berganti otomatis tiap 15 menit — lihat kode terbaru di Tab OTP.</p>
+        <input type="password" id="resPass" placeholder="OTP">
+        <button class="btn" onclick="checkResultsPass()">Buka</button>
+        <div id="resErr" style="color:var(--danger); font-size:11.5px;"></div>
+      </div>
+      <div id="resultsBody" style="display:none;">
+        <h2 class="panehead">📊 Hasil Kerja LKPD</h2>
+        <div id="resSourceNote"></div>
+        <div class="actrow">
+          <button class="btn secondary" onclick="renderResultsTable()">🔄 Refresh</button>
+          <button class="btn secondary" onclick="exportCSV()">⬇ Export CSV</button>
+          <button class="btn secondary" onclick="clearResults()">🗑 Hapus Semua Data</button>
+        </div>
+        <div style="max-height:520px; overflow-y:auto; margin-top:10px;">
+          <table class="res" id="resTable">
+            <thead><tr><th>#</th><th>Nama</th><th>Kelas</th><th>Meeting</th><th>Skor</th><th>Waktu</th><th>Essay</th></tr></thead>
+            <tbody id="resTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- DEVELOPER -->
+    <section class="pane" id="pane-developer">
+      <h2 class="panehead">👨‍💻 Developer</h2>
+      <div class="devprofile-card">
+        <div class="devphoto-ring"><img src="data:image/jpeg;base64,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" alt="Foto Profil - Taslim Siolimbona, S.Pd." id="devPhoto"></div>
+        <div class="devprofile-info">
+          <h3>Taslim Siolimbona, S.Pd.</h3>
+          <p class="devrole">Guru Bahasa Inggris Wajib</p>
+          <div class="devbadges">
+            <span class="devbadge">🏫 SMA Negeri 4 Ternate</span>
+            <span class="devbadge">📘 Kelas XII · Fase F</span>
+          </div>
+          <div class="devmeta">
+            <div class="devmeta-row"><span class="devmeta-label">NIP</span><span class="devmeta-val">198406262019031003</span></div>
+            <div class="devmeta-row"><span class="devmeta-label">No. HP</span><span class="devmeta-val">085145453435</span></div>
+            <div class="devmeta-row"><span class="devmeta-label">Mapel</span><span class="devmeta-val">Bahasa Inggris Wajib — Kelas XII, Fase F</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>About This Virtual Lab</h3>
+        <p>Media Pembelajaran Interaktif ini dikembangkan untuk mendukung pembelajaran teks naratif "The Story of a Friendly Future" (Life Today, Unit 1) melalui pendekatan simulasi digital, guna mengatasi kendala speaking anxiety, keterbatasan kosakata, kesulitan memahami teks otentik, rendahnya motivasi, dan pasifnya siswa dalam diskusi kelompok.</p>
+      </div>
+      <div class="card">
+        <h3>Tech Stack</h3>
+        <span class="pill">HTML5</span><span class="pill">CSS3</span><span class="pill">Vanilla JavaScript</span><span class="pill">Web Audio API</span><span class="pill">LocalStorage</span>
+      </div>
+    </section>
+
+  </div>
+
+  <div id="ftr">
+    <span>© 2026 SMA Negeri 4 Ternate — Bahasa Inggris Wajib</span>
+    <span>Fase F · Kelas XII · Life Today Unit 1</span>
+  </div>
+</div>
+</div>
+
+<script>
+/* ===================== ONLINE BACKEND (Google Apps Script) ===================== */
+/* PENTING (untuk guru): setelah men-deploy Google Apps Script (lihat panduan
+   Code.gs terpisah), salin URL Web App hasil deploy dan tempel di antara
+   tanda kutip di bawah ini. Jika dikosongkan, Lab Maya tetap berjalan
+   normal secara offline menggunakan localStorage di perangkat masing-masing. */
+const API_URL = 'https://script.google.com/macros/s/AKfycbxmS02TX3-tJ2rH8-owEfFDSdztGxFV6aI2VVZcsc5cPBFUKY3pGmM3GUj3wIC6Rqn5/exec'; // <-- TEMPEL URL WEB APP GOOGLE APPS SCRIPT DI SINI
+
+async function submitToBackend(record){
+  if(!API_URL) return {ok:false, offline:true};
+  try{
+    const res=await fetch(API_URL,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({action:'submit', ...record})
+    });
+    return await res.json();
+  }catch(err){ console.error('submitToBackend error:', err); return {ok:false, error:String(err)}; }
+}
+async function fetchSubmissions(password){
+  if(!API_URL) return {ok:false, offline:true};
+  try{
+    const res=await fetch(API_URL+'?action=list&password='+encodeURIComponent(password));
+    return await res.json();
+  }catch(err){ console.error('fetchSubmissions error:', err); return {ok:false, error:String(err)}; }
+}
+async function resetSubmissionsOnBackend(password){
+  if(!API_URL) return {ok:false, offline:true};
+  try{
+    const res=await fetch(API_URL,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({action:'reset', password})
+    });
+    return await res.json();
+  }catch(err){ console.error('resetSubmissionsOnBackend error:', err); return {ok:false, error:String(err)}; }
+}
+
+/* ===================== AUDIO ===================== */
+let audioCtx=null, soundOn=true;
+function initAudio(){ try{audioCtx = new (window.AudioContext||window.webkitAudioContext)();}catch(e){} }
+function beep(freq=440,dur=0.09,type='sine',vol=0.06){
+  if(!soundOn||!audioCtx) return;
+  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+  o.type=type; o.frequency.value=freq; g.gain.value=vol;
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+dur);
+  o.stop(audioCtx.currentTime+dur);
+}
+function sndClick(){beep(520,0.06,'square',0.05);}
+function sndOk(){beep(660,0.09,'sine',0.07); setTimeout(()=>beep(880,0.12,'sine',0.07),90);}
+function sndNo(){beep(180,0.18,'sawtooth',0.06);}
+function sndSubmit(){beep(440,0.08,'sine',0.06); setTimeout(()=>beep(660,0.08,'sine',0.06),80); setTimeout(()=>beep(880,0.15,'sine',0.08),160);}
+
+document.getElementById('soundBtn').onclick=()=>{
+  soundOn=!soundOn;
+  document.getElementById('soundBtn').textContent = soundOn? '🔊':'🔇';
+  sndClick();
+};
+
+/* ===================== SPLASH / FULLSCREEN / SCALING ===================== */
+let pct=0;
+const loadTimer=setInterval(()=>{
+  pct+=Math.random()*18;
+  if(pct>=100){pct=100; clearInterval(loadTimer); document.getElementById('startBtn').style.display='inline-block';}
+  document.getElementById('loadBar').style.width=pct+'%';
+  document.getElementById('loadPct').textContent='Loading... '+Math.floor(pct)+'%';
+},220);
+
+document.getElementById('startBtn').onclick=function(){
+  initAudio(); sndSubmit();
+  const el=document.documentElement;
+  const reqFS = el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen;
+  if(reqFS){ try{ reqFS.call(el); }catch(e){} }
+  if(screen.orientation && screen.orientation.lock){ screen.orientation.lock('landscape').catch(()=>{}); }
+  document.getElementById('splash').style.display='none';
+  scaleStage();
+};
+document.getElementById('fsBtn').onclick=function(){
+  sndClick();
+  const el=document.documentElement;
+  const reqFS = el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen;
+  if(reqFS){ try{ reqFS.call(el); }catch(e){} }
+};
+
+/* isForceLandscape mirrors the CSS media query: phone-width screens in portrait
+   get rotated 90deg via CSS, so the JS scale math must use swapped dimensions. */
+function isForceLandscape(){
+  return window.matchMedia('(max-width: 700px) and (orientation: portrait)').matches;
+}
+function scaleStage(){
+  let w = (window.visualViewport? window.visualViewport.width : window.innerWidth);
+  let h = (window.visualViewport? window.visualViewport.height : window.innerHeight);
+  if(isForceLandscape()){ const t=w; w=h; h=t; } // dimensions are swapped by the CSS rotate
+  const scale = Math.min(w/1280, h/720);
+  document.getElementById('stage').style.transform = 'scale('+scale+')';
+}
+window.addEventListener('resize', scaleStage);
+window.addEventListener('orientationchange', ()=>{setTimeout(scaleStage,300);});
+if(window.visualViewport){ window.visualViewport.addEventListener('resize', scaleStage); }
+scaleStage();
+
+/* ===================== TABS ===================== */
+document.querySelectorAll('#tabs button').forEach(btn=>{
+  btn.onclick=()=>{
+    sndClick();
+    document.querySelectorAll('#tabs button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+    document.getElementById('pane-'+btn.dataset.tab).classList.add('active');
+  };
+});
+
+/* ===================== DATA: 9 MEETINGS ===================== */
+const MEETINGS=[
+{id:1, title:"Introduction to Narrative Text", focus:"Generic Structure",
+ tp:"Peserta didik mampu mengidentifikasi struktur generik (Orientation, Complication, Resolution) teks naratif 'The Story of a Friendly Future' secara mandiri.",
+ theory:`<div class="card"><h3>What is a Narrative Text?</h3><p>A narrative text is a text that tells a story to entertain, inspire, or teach a lesson to the reader. "The Story of a Friendly Future" (Life Today, Unit 1) is a narrative about a community that transforms their town using renewable energy.</p></div>
+ <div class="card"><h3>Generic Structure</h3><ul><li><b>Orientation</b> — introduces the characters, setting (time/place), and background situation.</li><li><b>Complication</b> — a problem or conflict arises that the characters must face.</li><li><b>Resolution</b> — the problem is solved and the story reaches its ending.</li><li><b>Coda / Evaluation</b> (optional) — the lesson or moral message of the story.</li></ul></div>
+ <div class="card"><h3>Example</h3><p><i>Orientation:</i> "In a small coastal town, the sun rarely reached the rooftops..." <i>Complication:</i> "One year, the town's old power plant broke down..." <i>Resolution:</i> "The villagers built solar panels together and lit up the town again."</p></div>`,
+ sim:{type:"order", title:"Story Structure Sorter", instruction:"Click the parts of the story in the correct order (Orientation → Complication → Resolution).",
+   items:[
+     {id:'a', text:"The old power plant suddenly stopped working, leaving the town in darkness.", correctPos:2},
+     {id:'b', text:"In a small coastal town, families relied on an old power plant for electricity.", correctPos:1},
+     {id:'c', text:"Together, the villagers built solar panels and lit up the town again.", correctPos:3}
+   ]},
+ quiz:[
+   {q:"What is the first part of a narrative's generic structure?", opts:["Complication","Orientation","Resolution","Coda"], a:1},
+   {q:"The part where a problem arises in the story is called...", opts:["Orientation","Setting","Complication","Ending"], a:2},
+   {q:"'The villagers built solar panels together and lit up the town again' belongs to the...", opts:["Orientation","Complication","Resolution","Introduction"], a:2},
+   {q:"The main purpose of a narrative text is to...", opts:["give instructions","entertain and tell a story","describe an object","argue an opinion"], a:1},
+   {q:"'The Story of a Friendly Future' is mainly about...", opts:["a war between two kingdoms","a town transforming with renewable energy","a scientific experiment report","a recipe book"], a:1},
+   {q:"A narrative text usually begins with the...", opts:["Resolution","Orientation","Complication","Coda"], a:1},
+   {q:"The optional part that states the moral or lesson of a story is called...", opts:["Orientation","Complication","Coda/Evaluation","Setting"], a:2},
+   {q:"'One year, the town's old power plant broke down' is an example of...", opts:["Orientation","Complication","Resolution","Coda"], a:1},
+   {q:"Which of these best describes 'setting' in a narrative text?", opts:["The characters' feelings","The time and place of the story","The moral lesson","The list of events"], a:1},
+   {q:"In the Resolution part, the story usually shows...", opts:["a new unrelated problem","how the conflict is solved","the introduction of characters","a list of vocabulary"], a:1}
+ ],
+ essay:[
+   {q:"Explain in your own words what a narrative text is and what its main purpose is.", key:"Jawaban memuat: teks yang menceritakan sebuah kisah untuk menghibur, menginspirasi, atau menyampaikan pelajaran kepada pembaca."},
+   {q:"Describe the three main parts of a narrative's generic structure (Orientation, Complication, Resolution) in your own sentences.", key:"Orientation memperkenalkan tokoh/latar; Complication memunculkan masalah/konflik; Resolution menyelesaikan masalah tersebut."},
+   {q:"Write one original sentence that could belong to the Orientation part of a story about a town's energy problem.", key:"Kalimat memperkenalkan latar/tokoh/situasi awal, belum ada konflik, sesuai tema energi."},
+   {q:"Write one original sentence that could belong to the Complication part of the same story.", key:"Kalimat menunjukkan munculnya masalah/konflik terkait energi (mis. listrik padam, alat rusak)."},
+   {q:"In your opinion, why is the Resolution part important for a narrative text? Explain briefly.", key:"Jawaban terbuka; kunci: Resolution memberi penyelesaian/makna cerita dan kepuasan bagi pembaca."}
+ ]},
+
+{id:2, title:"Future vs Past Tense Issues", focus:"Tense Contrast",
+ tp:"Peserta didik mampu membedakan penggunaan Simple Past Tense dan Simple Future Tense dalam konteks narasi dan isu masa depan energi.",
+ theory:`<div class="card"><h3>Simple Past vs Simple Future</h3><p>Narrative texts mostly use <b>Simple Past Tense</b> to tell events that already happened. However, when characters talk about hopes, plans, or predictions for the future, <b>Simple Future Tense</b> (will / going to) is used.</p></div>
+ <div class="card"><h3>Formulas</h3><ul><li><b>Simple Past:</b> Subject + V2 (e.g. "The town built solar panels.")</li><li><b>Simple Future:</b> Subject + will/going to + V1 (e.g. "The town will build more solar farms.")</li></ul></div>
+ <div class="card"><h3>Why It Matters in "Friendly Future"</h3><p>The story shifts between what already happened (the town's past struggles) and what the characters believe will happen (a hopeful, sustainable future) — this contrast is the heart of the story's message.</p></div>`,
+ sim:{type:"sort2", title:"Tense Sorter", instruction:"Classify each sentence as Past or Future.",
+   zoneA:"Past Tense", zoneB:"Future Tense",
+   items:[
+     {id:'a', text:"The villagers installed solar panels last year.", correct:'A'},
+     {id:'b', text:"Next year, the town will build a wind farm.", correct:'B'},
+     {id:'c', text:"The old plant stopped working in 2020.", correct:'A'},
+     {id:'d', text:"Scientists believe renewable energy will change the world.", correct:'B'},
+     {id:'e', text:"The children helped their parents fix the panels.", correct:'A'},
+     {id:'f', text:"The town is going to celebrate its clean energy festival.", correct:'B'}
+   ]},
+ quiz:[
+   {q:"Choose the correct Simple Past sentence.", opts:["The town will build solar panels.","The town built solar panels.","The town is building solar panels.","The town builds solar panels."], a:1},
+   {q:"'Next year, the village ___ install more wind turbines.'", opts:["installed","will","is","was"], a:1},
+   {q:"Which tense is mostly used to narrate past events in a story?", opts:["Simple Future","Simple Present","Simple Past","Present Continuous"], a:2},
+   {q:"'The engineers ___ finished the project last month.' Choose the correct verb.", opts:["will have","have","had","has"], a:2},
+   {q:"Identify the future-tense sentence: ", opts:["The children played outside.","The sun set behind the hills.","The community will plant more trees.","The plant stopped working."], a:2},
+   {q:"'Going to' is used to express...", opts:["a completed past action","a planned future action","a habitual action","a past habit"], a:1},
+   {q:"Choose the correct future sentence.", opts:["The town celebrated its success.","The town will celebrating its success.","The town will celebrate its success.","The town celebrates its success yesterday."], a:2},
+   {q:"'The villagers ___ solar panels last month.' (install, Past)", opts:["will install","installed","are installing","install"], a:1},
+   {q:"Which signal word usually indicates future tense?", opts:["yesterday","last year","next year","ago"], a:2},
+   {q:"'Renewable energy ___ change the world.' Best future form:", opts:["changed","will","is changing","changes"], a:1}
+ ],
+ essay:[
+   {q:"Explain the difference between Simple Past Tense and Simple Future Tense, and when each is used in a narrative.", key:"Simple Past untuk peristiwa yang sudah terjadi; Simple Future untuk rencana/harapan/prediksi ke depan."},
+   {q:"Write two original sentences about the story: one in Simple Past Tense and one in Simple Future Tense.", key:"Kalimat 1 memakai V2 (past); kalimat 2 memakai will/going to + V1 (future), relevan dengan tema cerita."},
+   {q:"Why do narrative texts usually use Simple Past Tense to tell the story instead of Simple Present?", key:"Karena narasi menceritakan peristiwa yang sudah terjadi di masa lalu."},
+   {q:"Give an example sentence using 'will' and explain what event or plan it expresses.", key:"Kalimat memakai 'will' + V1, menjelaskan rencana/prediksi masa depan yang diungkapkan."},
+   {q:"Explain why 'The Story of a Friendly Future' combines both past and future tense in its message.", key:"Cerita menceritakan perjuangan masa lalu (past) sekaligus harapan masa depan yang berkelanjutan (future)."}
+ ]},
+
+{id:3, title:"Renewable Energy in Context", focus:"Vocabulary",
+ tp:"Peserta didik mampu menggunakan kosakata terkait energi terbarukan (renewable energy) dalam konteks kalimat naratif.",
+ theory:`<div class="card"><h3>Key Vocabulary: Renewable Energy</h3><ul><li><b>Solar panel</b> — a device that converts sunlight into electricity.</li><li><b>Wind turbine</b> — a machine that generates electricity from wind.</li><li><b>Sustainable</b> — able to continue over time without harming the environment.</li><li><b>Fossil fuel</b> — non-renewable energy source such as coal or oil.</li><li><b>Carbon footprint</b> — the amount of carbon dioxide produced by human activities.</li><li><b>Clean energy</b> — energy that does not pollute the environment.</li></ul></div>
+ <div class="card"><h3>Using Vocabulary in Narrative Sentences</h3><p>Example: "The villagers replaced fossil fuel generators with solar panels to reduce their carbon footprint and build a more sustainable future."</p></div>`,
+ sim:{type:"match", title:"Energy Vocabulary Match", instruction:"Match each term with its correct meaning.",
+   pairs:[
+     {term:"Solar panel", def:"A device converting sunlight into electricity"},
+     {term:"Wind turbine", def:"A machine generating electricity from wind"},
+     {term:"Sustainable", def:"Able to continue without harming the environment"},
+     {term:"Fossil fuel", def:"A non-renewable energy source like coal or oil"},
+     {term:"Carbon footprint", def:"The amount of CO2 produced by human activity"},
+     {term:"Clean energy", def:"Energy that does not pollute the environment"}
+   ]},
+ quiz:[
+   {q:"A device that converts sunlight into electricity is called a...", opts:["wind turbine","solar panel","fossil generator","battery"], a:1},
+   {q:"'Sustainable' most nearly means...", opts:["temporary","expensive","able to continue without harm","dangerous"], a:2},
+   {q:"Coal and oil are examples of...", opts:["renewable energy","clean energy","fossil fuels","solar power"], a:2},
+   {q:"The amount of CO2 produced by human activities is called...", opts:["carbon footprint","wind energy","solar power","fuel index"], a:0},
+   {q:"'The town reduced its ___ by using solar power instead of coal.'", opts:["wind turbine","carbon footprint","fossil fuel","battery"], a:1},
+   {q:"A machine that generates electricity from wind is called a...", opts:["solar panel","wind turbine","fossil generator","carbon meter"], a:1},
+   {q:"Which of these is a renewable energy source?", opts:["Coal","Oil","Sunlight","Natural gas"], a:2},
+   {q:"'Clean energy' means energy that...", opts:["is very expensive","does not pollute the environment","comes only from coal","cannot be reused"], a:1},
+   {q:"'The community switched from ___ to renewable sources.' Best word:", opts:["fossil fuels","solar panels","wind turbines","clean energy"], a:0},
+   {q:"Why is renewable energy important for the future, according to the story?", opts:["It is cheaper to build","It reduces pollution and supports sustainability","It requires no maintenance","It replaces the need for electricity"], a:1}
+ ],
+ essay:[
+   {q:"Explain what 'renewable energy' means in your own words, and give two examples.", key:"Energi yang dapat diperbarui/tidak habis, contoh: solar panel, wind turbine."},
+   {q:"Use the word 'sustainable' in an original sentence related to your own community.", key:"Kalimat menggunakan 'sustainable' secara tepat dalam konteks lingkungan/komunitas."},
+   {q:"Explain the difference between 'fossil fuel' and 'clean energy'.", key:"Fossil fuel: sumber energi tak terbarukan (batu bara, minyak) dan mencemari; clean energy: energi yang tidak mencemari lingkungan."},
+   {q:"What is a 'carbon footprint' and why is it important to reduce it?", key:"Jumlah CO2 yang dihasilkan aktivitas manusia; penting dikurangi untuk mengurangi pemanasan global/polusi."},
+   {q:"Write a short paragraph (2–3 sentences) describing how solar panels and wind turbines help reduce pollution.", key:"Paragraf menjelaskan solar panel & wind turbine menghasilkan energi bersih tanpa emisi karbon, mengurangi polusi."}
+ ]},
+
+{id:4, title:"Action Verbs in Narrative", focus:"Grammar Feature",
+ tp:"Peserta didik mampu mengidentifikasi dan menggunakan action verbs dalam teks naratif secara tepat.",
+ theory:`<div class="card"><h3>What are Action Verbs?</h3><p>Action verbs describe physical or mental actions performed by the subject. Narrative texts rely heavily on action verbs to move the story forward and make it lively.</p></div>
+ <div class="card"><h3>Examples from the Story</h3><p>"The villagers <b>built</b> solar panels, <b>connected</b> the wires, and <b>celebrated</b> as the lights <b>turned</b> on again."</p><p>Common action verbs: build, connect, install, repair, celebrate, discover, decide, help, plant, create.</p></div>`,
+ sim:{type:"clickverbs", title:"Action Verb Hunter", instruction:"Click all the action verbs in the passage below.",
+   passage:"The villagers gathered near the old power plant. They discussed the problem carefully and decided to act. Some people collected old solar panels while others repaired broken wires. Finally, the engineer connected the system and everyone celebrated as the lights turned on again.",
+   verbs:["gathered","discussed","decided","collected","repaired","connected","celebrated","turned"]},
+ quiz:[
+   {q:"An action verb describes...", opts:["a feeling only","a physical or mental action","a place","an adjective"], a:1},
+   {q:"Which word is an action verb?", opts:["beautiful","quickly","repaired","town"], a:2},
+   {q:"'The engineer ___ the broken wires.' Best action verb:", opts:["is","fixed","was","being"], a:1},
+   {q:"Choose the sentence with an action verb.", opts:["The sky was blue.","She is happy.","They built a solar farm.","It was Monday."], a:2},
+   {q:"'Celebrated' in the story shows...", opts:["a description","an action performed by the villagers","a place","a time marker"], a:1},
+   {q:"Which sentence contains two action verbs?", opts:["The sky was clear and calm.","They gathered wood and built a shelter.","The house is old and quiet.","It was a sunny day."], a:1},
+   {q:"'Discussed' in the passage means the villagers...", opts:["argued loudly","talked about the problem carefully","ignored the problem","wrote a report"], a:1},
+   {q:"Action verbs are important in narrative texts because they...", opts:["describe feelings only","show what characters do and move the story forward","list vocabulary","explain grammar rules"], a:1},
+   {q:"Choose the action verb: 'The engineer quickly ___ the broken system.'", opts:["was","repaired","being","is"], a:1},
+   {q:"'Gathered' in 'The villagers gathered near the plant' functions as a/an...", opts:["adjective","action verb","noun","adverb"], a:1}
+ ],
+ essay:[
+   {q:"Explain what an action verb is and give three examples from the story.", key:"Action verb: kata kerja yang menunjukkan tindakan fisik/mental; contoh: built, repaired, celebrated, connected."},
+   {q:"Rewrite this sentence using a stronger, more specific action verb: 'The villagers did something with the wires.'", key:"Contoh jawaban: 'The villagers repaired/connected the wires.' — kata kerja lebih spesifik dari 'did something'."},
+   {q:"Why are action verbs important in making a narrative text lively and engaging?", key:"Action verbs menggambarkan tindakan nyata tokoh sehingga cerita terasa hidup dan bergerak maju."},
+   {q:"Write two original sentences using action verbs related to building or fixing something.", key:"Dua kalimat orisinal memuat action verb terkait membangun/memperbaiki, tata bahasa benar."},
+   {q:"Choose one action verb from the passage in the Simulation tab and explain what action it shows.", key:"Siswa memilih salah satu verb (gathered/discussed/decided/collected/repaired/connected/celebrated/turned) dan menjelaskan tindakannya dengan tepat."}
+ ]},
+
+{id:5, title:"Simple Past Tense Deep Dive", focus:"Grammar",
+ tp:"Peserta didik mampu menerapkan bentuk Simple Past Tense (regular & irregular verbs) dalam kalimat naratif dengan benar.",
+ theory:`<div class="card"><h3>Regular vs Irregular Verbs</h3><p><b>Regular verbs</b> add -ed: install → installed, help → helped, celebrate → celebrated.</p><p><b>Irregular verbs</b> change form: build → built, go → went, break → broke, find → found.</p></div>
+ <div class="card"><h3>Negative & Question Forms</h3><ul><li>Positive: The villagers <b>built</b> solar panels.</li><li>Negative: The villagers <b>did not build</b> solar panels.</li><li>Question: <b>Did</b> the villagers <b>build</b> solar panels?</li></ul></div>`,
+ sim:{type:"fillblank", title:"Past Tense Verb Conversion", instruction:"Choose the correct Simple Past form for each verb.",
+   items:[
+     {sentence:"Yesterday, the villagers ___ (build) new solar panels.", options:["build","builded","built","building"], a:2},
+     {sentence:"The old plant ___ (break) down last winter.", options:["break","broke","breaked","breaking"], a:1},
+     {sentence:"The engineer ___ (find) a solution quickly.", options:["find","found","finded","finds"], a:1},
+     {sentence:"They ___ (celebrate) the town's success.", options:["celebrate","celebrating","celebrated","celebrates"], a:2},
+     {sentence:"The children ___ (help) their parents with the wires.", options:["help","helping","helps","helped"], a:3}
+   ]},
+ quiz:[
+   {q:"The Simple Past form of 'go' is...", opts:["goed","went","going","gone"], a:1},
+   {q:"'She ___ the panels last week.' (install)", opts:["install","installs","installed","installing"], a:2},
+   {q:"Negative form: 'They did not ___ the wires.'", opts:["connected","connect","connects","connecting"], a:1},
+   {q:"Question form: '___ the villagers build solar panels?'", opts:["Do","Does","Did","Will"], a:2},
+   {q:"Which is an irregular past tense verb?", opts:["helped","broke","celebrated","installed"], a:1},
+   {q:"The regular past tense form is made by adding...", opts:["-ing","-s","-ed","-en"], a:2},
+   {q:"The past tense of 'find' is...", opts:["finded","found","finds","finding"], a:1},
+   {q:"'They ___ (repair) the wires yesterday.' Correct form:", opts:["repair","repairs","repaired","repairing"], a:2},
+   {q:"Which sentence is grammatically correct in Simple Past?", opts:["She build a solar panel.","She builded a solar panel.","She built a solar panel.","She builds a solar panel."], a:2},
+   {q:"'Break' changes to which form in Simple Past?", opts:["breaked","broken","broke","breaking"], a:2}
+ ],
+ essay:[
+   {q:"Explain the difference between regular and irregular verbs in Simple Past Tense, with examples.", key:"Regular: tambah -ed (install→installed); Irregular: berubah bentuk (build→built, go→went, break→broke, find→found)."},
+   {q:"Change these verbs into their Simple Past form: build, go, help, break, find.", key:"built, went, helped, broke, found."},
+   {q:"Write a negative sentence using Simple Past Tense about the story (e.g., about the power plant).", key:"Kalimat memakai pola 'did not + V1', konteks sesuai cerita."},
+   {q:"Write a question sentence using 'Did' related to the villagers' actions in the story.", key:"Kalimat memakai pola 'Did + subject + V1 ...?', konteks sesuai cerita."},
+   {q:"Explain why using the correct Simple Past form is important in narrative writing.", key:"Bentuk past tense yang tepat membuat cerita mudah dipahami dan tata bahasanya benar sesuai konteks waktu lampau."}
+ ]},
+
+{id:6, title:"Building a Story Timeline", focus:"Time Connectives",
+ tp:"Peserta didik mampu menyusun urutan peristiwa (timeline) dalam sebuah cerita menggunakan penanda waktu (time connectives).",
+ theory:`<div class="card"><h3>Time Sequence Connectives</h3><p>Connectives help readers follow the order of events: <b>first, then, after that, next, meanwhile, finally, eventually, in the end.</b></p></div>
+ <div class="card"><h3>Example Timeline</h3><p><b>First</b>, the power plant broke down. <b>Then</b>, the villagers met to discuss solutions. <b>After that</b>, they collected materials. <b>Finally</b>, they installed the solar panels and celebrated.</p></div>`,
+ sim:{type:"order", title:"Timeline Builder", instruction:"Arrange the events in the correct chronological order.",
+   items:[
+     {id:'a', text:"Finally, the town celebrated as the lights turned on again.", correctPos:4},
+     {id:'b', text:"First, the old power plant broke down suddenly.", correctPos:1},
+     {id:'c', text:"After that, they collected solar panels and tools.", correctPos:3},
+     {id:'d', text:"Then, the villagers held a meeting to discuss solutions.", correctPos:2}
+   ]},
+ quiz:[
+   {q:"Which word signals the last event in a sequence?", opts:["First","Meanwhile","Finally","Then"], a:2},
+   {q:"'___, the villagers met to plan a solution.' Best connective for a second step:", opts:["Finally","Then","Before","Eventually"], a:1},
+   {q:"Time connectives mainly help readers to...", opts:["guess the ending","follow the order of events","memorize vocabulary","translate the text"], a:1},
+   {q:"Which is NOT a time sequence connective?", opts:["After that","However","Next","Eventually"], a:1},
+   {q:"'First the plant broke, ___ the town went dark.' Choose the best connective.", opts:["then","however","although","despite"], a:0},
+   {q:"'Meanwhile' is used to describe...", opts:["an event happening at the same time as another","the final event","the very first event","a cause and effect relationship"], a:0},
+   {q:"Which connective usually starts the beginning of a sequence?", opts:["Finally","First","Eventually","In the end"], a:1},
+   {q:"'After that, they collected solar panels' — 'after that' shows...", opts:["a contrast","a sequence of events","a reason","an opinion"], a:1},
+   {q:"Choose the correct order of connectives from beginning to end.", opts:["Finally, Then, First","First, Then, Finally","Then, First, Finally","Finally, First, Then"], a:1},
+   {q:"Time connectives are mostly found in which type of text?", opts:["Narrative text","Descriptive text","Argumentative text","Persuasive text"], a:0}
+ ],
+ essay:[
+   {q:"Explain the function of time connectives in a narrative text.", key:"Time connectives membantu pembaca mengikuti urutan peristiwa dalam cerita."},
+   {q:"List four time connectives you can use to order events in a story.", key:"Contoh: first, then, after that, next, meanwhile, finally, eventually, in the end (minimal 4 disebutkan)."},
+   {q:"Write a short sequence of three sentences using 'First', 'Then', and 'Finally' describing any daily activity.", key:"Tiga kalimat berurutan logis memakai First/Then/Finally, tata bahasa benar."},
+   {q:"Explain the difference between 'meanwhile' and 'finally' in showing time relationships.", key:"'Meanwhile' = kejadian bersamaan; 'finally' = kejadian terakhir/penutup."},
+   {q:"Rewrite the story's ending event using a different time connective than the one used in the text.", key:"Siswa mengganti 'Finally' dengan connective lain yang tetap logis (mis. 'In the end', 'Eventually')."}
+ ]},
+
+{id:7, title:"Storytelling: Plot & Sequencing", focus:"Storytelling Skill",
+ tp:"Peserta didik mampu mengembangkan alur cerita (plot) naratif secara runtut dan logis (storytelling).",
+ theory:`<div class="card"><h3>What Makes a Good Plot?</h3><p>A strong plot has a clear beginning (setup), rising action (challenges), climax (turning point), and ending (resolution). Good storytelling keeps events logically connected and engaging.</p></div>
+ <div class="card"><h3>Storytelling Tips</h3><ul><li>Introduce characters and setting clearly.</li><li>Build tension with a real problem.</li><li>Show how characters take action.</li><li>End with a satisfying, meaningful resolution.</li></ul></div>`,
+ sim:{type:"order", title:"Plot Sequencer", instruction:"Put the plot events of the story in the correct order.",
+   items:[
+     {id:'a', text:"Climax: The villagers work together all night to finish the solar grid.", correctPos:3},
+     {id:'b', text:"Setup: A peaceful coastal town depends on an aging power plant.", correctPos:1},
+     {id:'c', text:"Rising action: The plant fails and the town faces darkness and fear.", correctPos:2},
+     {id:'d', text:"Ending: The town shines again, powered by clean, renewable energy.", correctPos:4}
+   ]},
+ quiz:[
+   {q:"The turning point of highest tension in a story is called the...", opts:["orientation","climax","coda","setting"], a:1},
+   {q:"A good storytelling plot should be...", opts:["random and confusing","logically connected","only about description","without any conflict"], a:1},
+   {q:"'Rising action' refers to...", opts:["the story's ending","events building tension toward the climax","the title of the story","a grammar rule"], a:1},
+   {q:"An engaging story usually ends with a...", opts:["random new problem","satisfying resolution","list of vocabulary","grammar explanation"], a:1},
+   {q:"Which element introduces the characters and setting?", opts:["Climax","Setup/Orientation","Resolution","Coda"], a:1},
+   {q:"A story with a confusing, unrelated plot is usually considered...", opts:["well-structured","poorly structured","a good example of narrative","a good climax"], a:1},
+   {q:"'The villagers work together all night to finish the solar grid' is an example of...", opts:["Setup","Climax","Coda","Orientation"], a:1},
+   {q:"What should a storyteller do to build tension in a plot?", opts:["Avoid any conflict","Introduce a real problem for characters to face","Skip the ending","List vocabulary words"], a:1},
+   {q:"An effective ending usually...", opts:["leaves the conflict unsolved","resolves the conflict meaningfully","introduces a brand-new character","repeats the orientation"], a:1},
+   {q:"Sequencing in storytelling refers to...", opts:["choosing vocabulary","arranging events in a logical order","describing characters","using correct punctuation"], a:1}
+ ],
+ essay:[
+   {q:"Explain the four elements of a good plot (setup, rising action, climax, ending) in your own words.", key:"Setup: perkenalan; Rising action: membangun ketegangan; Climax: puncak konflik; Ending: penyelesaian."},
+   {q:"Identify the climax in 'The Story of a Friendly Future' and explain why it is the most tense part.", key:"Klimaks: warga bekerja semalaman menyelesaikan jaringan solar; paling tegang karena penentu keberhasilan solusi."},
+   {q:"Why does a well-sequenced plot make a story easier to understand?", key:"Urutan logis membantu pembaca mengikuti sebab-akibat dan alur cerita tanpa kebingungan."},
+   {q:"Write your own short setup (1–2 sentences) for a new story about a community facing a problem.", key:"Kalimat memperkenalkan tokoh/latar/situasi awal secara jelas, sesuai ciri Setup/Orientation."},
+   {q:"Explain what makes a story ending 'satisfying' according to what you learned.", key:"Ending memuaskan bila konflik terselesaikan secara bermakna dan logis, bukan menggantung."}
+ ]},
+
+{id:8, title:"Reading Comprehension: The Full Story", focus:"Reading",
+ tp:"Peserta didik mampu memahami informasi tersurat dan tersirat dari teks 'The Story of a Friendly Future' melalui kegiatan membaca pemahaman.",
+ theory:`<div class="card"><h3>The Story of a Friendly Future (Summary)</h3><p>In a small coastal town, families depended on an old power plant for electricity. One year, the plant broke down and the town was left in darkness. Worried but determined, the villagers met together and decided to find a new solution. They gathered old solar panels, repaired broken wires, and worked side by side through the night. Finally, the lights turned on again — brighter and cleaner than before. The town celebrated, knowing that their future was now powered by the sun and the wind, not by fear.</p></div>
+ <div class="card"><h3>Reading Strategy</h3><p>Look for explicit information (stated directly) and implicit information (meaning implied but not directly written) — such as the villagers' feelings and the story's message about cooperation and sustainability.</p></div>`,
+ sim:{type:"comprehension", title:"Reading Comprehension Check", instruction:"Answer the questions based on the story summary above.",
+   items:[
+     {q:"Why was the town left in darkness?", opts:["A storm destroyed the town","The old power plant broke down","The villagers turned off the lights","There was no sunlight"], a:1},
+     {q:"What did the villagers do first after the plant broke down?", opts:["They left the town","They met together to find a solution","They bought a new plant","They complained to the government"], a:1},
+     {q:"What can be implied about the villagers' attitude?", opts:["They gave up easily","They were cooperative and determined","They blamed each other","They ignored the problem"], a:1},
+     {q:"What powers the town at the end of the story?", opts:["Coal and oil","The sun and the wind","A new fossil fuel plant","Batteries only"], a:1},
+     {q:"The story's main message is about...", opts:["giving up in hard times","cooperation and sustainable solutions","competition between neighbors","the danger of technology"], a:1}
+   ]},
+ quiz:[
+   {q:"According to the story, the town is located in a...", opts:["mountain area","coastal area","desert","forest"], a:1},
+   {q:"What broke down in the story?", opts:["The school","The old power plant","The bridge","The market"], a:1},
+   {q:"How did the villagers solve the problem?", opts:["They waited for help","They worked together using solar panels","They moved to another town","They bought fossil fuel"], a:1},
+   {q:"What is the implied moral of the story?", opts:["Technology is dangerous","Cooperation leads to a sustainable future","Cities are better than towns","Old machines are always better"], a:1},
+   {q:"The tone of the story's ending is...", opts:["hopeful and celebratory","sad and hopeless","angry","confusing"], a:0},
+   {q:"'Worried but determined' describes the villagers' feelings, which is an example of...", opts:["explicit information","implicit information","a grammar rule","a vocabulary list"], a:1},
+   {q:"The villagers repaired the wires and worked side by side. This shows their...", opts:["laziness","cooperation","fear","anger"], a:1},
+   {q:"What is explicitly stated about the power source at the end of the story?", opts:["It is powered by coal","It is powered by the sun and the wind","It is powered by batteries only","It is not mentioned"], a:1},
+   {q:"Reading comprehension activities mainly help readers to...", opts:["memorize grammar terms","understand explicit and implicit meaning","translate word by word","ignore the story's message"], a:1},
+   {q:"What lesson can readers learn from the story?", opts:["Give up when problems arise","Communities can overcome challenges through cooperation and clean energy","Old technology is always better","Renewable energy is not effective"], a:1}
+ ],
+ essay:[
+   {q:"Summarize the story 'The Story of a Friendly Future' in your own words (3–4 sentences).", key:"Ringkasan mencakup: pembangkit tua rusak → warga bekerja sama membangun panel surya → listrik kembali menyala → kota merayakan energi bersih."},
+   {q:"Explain what 'explicit information' and 'implicit information' mean, and give one example of each from the story.", key:"Explicit: informasi tersurat (mis. 'the old power plant broke down'); Implicit: informasi tersirat (mis. sikap 'worried but determined')."},
+   {q:"What can you infer about the villagers' feelings and character from their actions in the story?", key:"Warga digambarkan gotong royong, pantang menyerah, dan peduli terhadap keberlanjutan lingkungan."},
+   {q:"Explain the main message or moral of the story in one or two sentences.", key:"Pesan utama: kerja sama dan solusi energi berkelanjutan dapat mengatasi tantangan bersama."},
+   {q:"Do you agree with the way the villagers solved their problem? Explain your opinion.", key:"Jawaban terbuka/opini siswa, dinilai dari alasan logis yang relevan dengan isi cerita."}
+ ]},
+
+{id:9, title:"Creative Storytelling Project", focus:"Writing Practice",
+ tp:"Peserta didik mampu menulis narasi pendek bertema masa depan energi terbarukan dengan menerapkan struktur teks, action verbs, dan Past Tense secara tepat.",
+ theory:`<div class="card"><h3>Your Turn: Write a Mini Narrative</h3><p>Combine everything you have learned — generic structure, action verbs, Simple Past Tense, renewable energy vocabulary, and time connectives — to write your own short narrative about a community building a sustainable future.</p></div>
+ <div class="card"><h3>Checklist Before You Write</h3><ul><li>✔ Orientation, Complication, Resolution are clear</li><li>✔ Uses Simple Past Tense correctly</li><li>✔ Uses at least 3 action verbs</li><li>✔ Uses at least 2 renewable energy terms</li><li>✔ Uses time connectives (first, then, finally)</li></ul></div>`,
+ sim:{type:"fillblank", title:"Mini Story Builder", instruction:"Complete the short story by choosing the correct word for each blank.",
+   items:[
+     {sentence:"First, the village ___ (lose) all its electricity.", options:["lose","lost","losed","loses"], a:1},
+     {sentence:"The residents ___ (decide) to build a wind turbine.", options:["decide","decides","deciding","decided"], a:3},
+     {sentence:"They wanted a more ___ source of power.", options:["sustainable","quickly","angry","tall"], a:0},
+     {sentence:"Finally, the turbine ___ (turn) and light returned to every home.", options:["turn","turns","turned","turning"], a:2},
+     {sentence:"The whole town ___ (celebrate) their new clean energy future.", options:["celebrate","celebrated","celebrates","celebrating"], a:1}
+   ]},
+ quiz:[
+   {q:"A good narrative about renewable energy should include...", opts:["only present tense verbs","clear structure, action verbs, and past tense","no vocabulary at all","random unrelated events"], a:1},
+   {q:"Which sentence best fits an Orientation paragraph?", opts:["Finally, the lights turned on.","In a quiet village, families relied on an old generator.","The end.","Solar panels are shiny."], a:1},
+   {q:"Which action verb fits: 'The team ___ new solar panels on every roof.'", opts:["installed","blue","quickly","sustainable"], a:0},
+   {q:"A time connective that could start your story's ending is...", opts:["However","Finally","Although","Meanwhile"], a:1},
+   {q:"The purpose of this final project is to...", opts:["memorize grammar rules only","apply structure, tense, and vocabulary in original writing","translate the story","copy the textbook exactly"], a:1},
+   {q:"Before writing, a good checklist should confirm that the story includes...", opts:["only present tense verbs","clear structure, action verbs, and renewable energy vocabulary","a list of grammar rules","no time connectives"], a:1},
+   {q:"Which sentence is an example of correct Simple Past Tense for a narrative?", opts:["The team installs new panels.","The team will install new panels.","The team installed new panels.","The team installing new panels."], a:2},
+   {q:"A story should use at least how many renewable energy terms, according to the checklist?", opts:["Zero","One","Two","Five"], a:2},
+   {q:"'In the end' is best used to introduce the...", opts:["Orientation","Complication","Resolution/Ending","Title"], a:2},
+   {q:"Combining structure, tense, action verbs, and vocabulary in one piece of writing demonstrates...", opts:["basic vocabulary only","comprehensive storytelling skill","grammar memorization","reading comprehension only"], a:1}
+ ],
+ essay:[
+   {q:"Write your own short narrative (5–8 sentences) about a community building a sustainable future, following the generic structure (Orientation, Complication, Resolution).", key:"Narasi memuat Orientation, Complication, dan Resolution yang jelas dan runtut."},
+   {q:"Explain which action verbs you used in your story and why you chose them.", key:"Siswa menyebutkan minimal 3 action verbs yang dipakai dan alasan pemilihannya."},
+   {q:"Explain which Simple Past Tense verbs you used correctly in your narrative.", key:"Siswa menyebutkan verb past tense (regular/irregular) yang digunakan dan memastikan bentuknya benar."},
+   {q:"Explain which renewable energy vocabulary words you included in your story.", key:"Siswa menyebutkan minimal 2 istilah energi terbarukan (solar panel, wind turbine, sustainable, dll.) yang dipakai."},
+   {q:"Explain which time connectives you used to organize your story's events.", key:"Siswa menyebutkan time connectives (first, then, finally, dll.) yang digunakan untuk menyusun urutan cerita."}
+ ]}
+];
+
+const CP_TEXT = document.querySelector('#pane-procedure .card:nth-child(2) p').textContent;
+
+/* ===================== INIT UI FROM DATA ===================== */
+const meetingSel=document.getElementById('meetingSel');
+MEETINGS.forEach(m=>{
+  const o=document.createElement('option'); o.value=m.id; o.textContent='Meeting '+m.id+' — '+m.title; meetingSel.appendChild(o);
+});
+let currentMeeting=1;
+meetingSel.onchange=()=>{ currentMeeting=parseInt(meetingSel.value); sndClick(); renderAll(); syncChips(); };
+
+function buildChips(container){
+  container.innerHTML='';
+  MEETINGS.forEach(m=>{
+    const b=document.createElement('button'); b.textContent='M'+m.id;
+    b.onclick=()=>{ currentMeeting=m.id; meetingSel.value=m.id; sndClick(); renderAll(); syncChips(); };
+    container.appendChild(b);
+  });
+}
+buildChips(document.getElementById('chipsTheory'));
+buildChips(document.getElementById('chipsSim'));
+buildChips(document.getElementById('chipsLkpd'));
+function syncChips(){
+  [document.getElementById('chipsTheory'),document.getElementById('chipsSim'),document.getElementById('chipsLkpd')].forEach(c=>{
+    [...c.children].forEach((b,i)=> b.classList.toggle('active', MEETINGS[i].id===currentMeeting));
+  });
+}
+syncChips();
+
+/* ---- Answer Key chip navigation (independent state) ---- */
+let keyMeetingSim=1, keyMeetingLkpd=1;
+function buildKeyChips(container, getVal, setVal, renderFn){
+  container.innerHTML='';
+  MEETINGS.forEach(m=>{
+    const b=document.createElement('button'); b.textContent='M'+m.id;
+    b.onclick=()=>{ setVal(m.id); sndClick(); renderFn(); syncKeyChips(container, getVal); };
+    container.appendChild(b);
+  });
+  syncKeyChips(container, getVal);
+}
+function syncKeyChips(container, getVal){
+  [...container.children].forEach((b,i)=> b.classList.toggle('active', MEETINGS[i].id===getVal()));
+}
+
+/* procedure map */
+const procMap=document.getElementById('procMap');
+MEETINGS.forEach(m=>{
+  const d=document.createElement('div'); d.className='pill'; d.textContent='M'+m.id+' · '+m.title;
+  procMap.appendChild(d);
+});
+
+/* ===================== MEETING OTP — TIME-BASED (offline, ganti tiap 15 menit) ===================== */
+const OTP_STEP_MS = 15*60*1000; // 15 menit
+const OTP_TYPES = ['theory','sim','lkpd'];
+function otpWindowIndex(){ return Math.floor(Date.now()/OTP_STEP_MS); }
+function otpMsRemaining(){ return OTP_STEP_MS - (Date.now() % OTP_STEP_MS); }
+function otpHash(str){
+  // FNV-1a 32-bit, deterministik, tanpa perlu koneksi internet — hanya berbasis jam perangkat
+  let h=2166136261;
+  for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); }
+  return h>>>0;
+}
+function generateOtp(meetingId, type){
+  const idx=otpWindowIndex();
+  const seed=`FFLAB-${type}-M${meetingId}-W${idx}`;
+  return String(otpHash(seed)%10000).padStart(4,'0');
+}
+function generatePanelOtp(name){
+  const idx=otpWindowIndex();
+  const seed=`FFLAB-PANEL-${name}-W${idx}`;
+  return String(otpHash(seed)%10000).padStart(4,'0');
+}
+function otpTimeLabel(){
+  const ms=otpMsRemaining();
+  const totalSec=Math.ceil(ms/1000);
+  const mm=String(Math.floor(totalSec/60)).padStart(2,'0');
+  const ss=String(totalSec%60).padStart(2,'0');
+  return `${mm}:${ss}`;
+}
+
+let unlockedGates={theory:new Set(), sim:new Set(), lkpd:new Set()};
+function gateHTML(type){
+  return `<div class="lockscreen" style="height:360px;">
+    <div class="icon">🔒</div>
+    <h3 style="color:var(--cyan)">Meeting ${currentMeeting} Locked</h3>
+    <p style="font-size:12px;color:var(--muted); max-width:320px; text-align:center;">Masukkan OTP dari guru untuk membuka materi Meeting ${currentMeeting}. OTP berganti otomatis setiap 15 menit.</p>
+    <input type="password" maxlength="4" inputmode="numeric" id="gateInput_${type}" placeholder="••••">
+    <button class="btn" onclick="tryUnlock('${type}')">Buka</button>
+    <div id="gateErr_${type}" style="color:var(--danger); font-size:11.5px; max-width:320px; text-align:center;"></div>
+  </div>`;
+}
+function tryUnlock(type){
+  const val=document.getElementById('gateInput_'+type).value;
+  const correct=generateOtp(currentMeeting, type);
+  if(val===correct){
+    unlockedGates[type].add(currentMeeting); sndOk();
+    if(type==='theory') renderTheory();
+    if(type==='sim') renderSim();
+    if(type==='lkpd') renderLkpd();
+  } else {
+    sndNo();
+    document.getElementById('gateErr_'+type).textContent='Kode OTP salah atau sesi OTP (15 menit) telah berakhir. Minta kode baru pada Guru.';
+  }
+}
+function isLocked(type){ return !unlockedGates[type].has(currentMeeting); }
+
+/* ===================== OTP (referensi guru, password Virtual1) ===================== */
+function checkOtpPass(){
+  const val=document.getElementById('otpPass').value;
+  if(val==='Virtual1'){
+    sndOk();
+    document.getElementById('otpLock').style.display='none';
+    document.getElementById('otpBody').style.display='block';
+    startOtpCountdown();
+  } else {
+    sndNo();
+    document.getElementById('otpErr').textContent='OTP salah. Coba lagi.';
+  }
+}
+let otpCountdownTimer=null;
+let otpLastWindow=null;
+function startOtpCountdown(){
+  renderOtpTable();
+  otpLastWindow=otpWindowIndex();
+  if(otpCountdownTimer) clearInterval(otpCountdownTimer);
+  otpCountdownTimer=setInterval(()=>{
+    const label=document.getElementById('otpCountdown');
+    if(!label){ clearInterval(otpCountdownTimer); return; }
+    label.textContent='Berganti otomatis dalam '+otpTimeLabel();
+    const idx=otpWindowIndex();
+    if(idx!==otpLastWindow){
+      otpLastWindow=idx;
+      renderOtpTable();
+      sndClick();
+    }
+  },1000);
+}
+function renderOtpTable(){
+  const simkeyEl=document.getElementById('otpPanelSimkey');
+  const lkpdkeyEl=document.getElementById('otpPanelLkpdkey');
+  const resultsEl=document.getElementById('otpPanelResults');
+  if(simkeyEl) simkeyEl.textContent=generatePanelOtp('SIMKEY');
+  if(lkpdkeyEl) lkpdkeyEl.textContent=generatePanelOtp('LKPDKEY');
+  if(resultsEl) resultsEl.textContent=generatePanelOtp('RESULTS');
+  const tbody=document.getElementById('otpTbody');
+  let html='';
+  MEETINGS.forEach(m=>{
+    html+=`<tr>
+      <td>Meeting ${m.id} — ${m.title}</td>
+      <td style="font-size:20px; font-weight:800; letter-spacing:4px; color:var(--leaf);">${generateOtp(m.id,'theory')}</td>
+      <td style="font-size:20px; font-weight:800; letter-spacing:4px; color:var(--leaf);">${generateOtp(m.id,'sim')}</td>
+      <td style="font-size:20px; font-weight:800; letter-spacing:4px; color:var(--leaf);">${generateOtp(m.id,'lkpd')}</td>
+    </tr>`;
+  });
+  tbody.innerHTML=html;
+  const label=document.getElementById('otpCountdown');
+  if(label) label.textContent='Berganti otomatis dalam '+otpTimeLabel();
+}
+
+/* ===================== RENDER THEORY ===================== */
+function renderTheory(){
+  const m=MEETINGS.find(x=>x.id===currentMeeting);
+  if(isLocked('theory')){
+    document.getElementById('tpBox').style.display='none';
+    document.getElementById('theoryBody').innerHTML=gateHTML('theory');
+    return;
+  }
+  document.getElementById('tpBox').style.display='block';
+  document.getElementById('tpBox').innerHTML='<b>Tujuan Pembelajaran:</b> '+m.tp;
+  document.getElementById('theoryBody').innerHTML=m.theory;
+}
+
+/* ===================== RENDER SIMULATION ===================== */
+let simState={};
+function renderSim(){
+  const m=MEETINGS.find(x=>x.id===currentMeeting);
+  const box=document.getElementById('simBody');
+  if(isLocked('sim')){ box.innerHTML=gateHTML('sim'); return; }
+  simState={picked:[], done:false};
+  let html=`<div class="card"><h3>${m.sim.title}</h3><p style="font-size:12px;color:var(--muted);margin-bottom:8px;">${m.sim.instruction}</p><div id="simInner"></div><div class="feedback" id="simFeedback"></div></div>`;
+  box.innerHTML=html;
+  const inner=document.getElementById('simInner');
+
+  if(m.sim.type==='order'){
+    let shuffled=[...m.sim.items].sort(()=>Math.random()-0.5);
+    inner.innerHTML='<div id="orderPool"></div><div class="zone" style="margin-top:10px;"><h4>Your Order</h4><div id="orderResult"></div></div>';
+    const pool=document.getElementById('orderPool');
+    shuffled.forEach(it=>{
+      const c=document.createElement('div'); c.className='chip-word'; c.textContent=it.text; c.dataset.id=it.id;
+      c.onclick=()=>{
+        if(c.classList.contains('sel'))return;
+        c.classList.add('sel'); sndClick();
+        simState.picked.push(it.id);
+        const r=document.createElement('div'); r.className='order-slot'; r.style.display='block'; r.style.margin='4px 0'; r.textContent=simState.picked.length+'. '+it.text;
+        document.getElementById('orderResult').appendChild(r);
+        if(simState.picked.length===m.sim.items.length){ checkOrder(m); }
+      };
+      pool.appendChild(c);
+    });
+  } else if(m.sim.type==='sort2'){
+    inner.innerHTML=`<div class="two-col"><div class="zone" id="zoneA"><h4>${m.sim.zoneA}</h4></div><div class="zone" id="zoneB"><h4>${m.sim.zoneB}</h4></div></div><div id="sortPool" style="margin-top:10px;"></div>`;
+    const pool=document.getElementById('sortPool');
+    let remaining=m.sim.items.length; let correctCount=0;
+    m.sim.items.sort(()=>Math.random()-0.5).forEach(it=>{
+      const c=document.createElement('div'); c.className='chip-word'; c.textContent=it.text;
+      c.onclick=()=>{
+        if(c.classList.contains('correct')||c.classList.contains('wrong'))return;
+        const guess = c.parentNode===document.getElementById('zoneA')?'':''; // not used
+      };
+      const wrap=document.createElement('div'); wrap.style.display='flex'; wrap.style.gap='6px'; wrap.style.marginBottom='6px'; wrap.style.alignItems='center';
+      const btnA=document.createElement('button'); btnA.className='btn secondary'; btnA.style.fontSize='10px'; btnA.style.padding='4px 8px'; btnA.textContent='→ '+m.sim.zoneA;
+      const btnB=document.createElement('button'); btnB.className='btn secondary'; btnB.style.fontSize='10px'; btnB.style.padding='4px 8px'; btnB.textContent='→ '+m.sim.zoneB;
+      const answerFn=(choice)=>{
+        remaining--;
+        if(choice===it.correct){ c.classList.add('correct'); sndOk(); correctCount++; }
+        else{ c.classList.add('wrong'); sndNo(); }
+        btnA.disabled=true; btnB.disabled=true;
+        if(remaining===0){
+          document.getElementById('simFeedback').className='feedback '+(correctCount===m.sim.items.length?'ok':'no');
+          document.getElementById('simFeedback').textContent='Score: '+correctCount+'/'+m.sim.items.length+' correct!';
+        }
+      };
+      btnA.onclick=()=>answerFn('A'); btnB.onclick=()=>answerFn('B');
+      wrap.appendChild(c); wrap.appendChild(btnA); wrap.appendChild(btnB);
+      pool.appendChild(wrap);
+    });
+  } else if(m.sim.type==='match'){
+    let terms=[...m.sim.pairs].sort(()=>Math.random()-0.5);
+    let defs=[...m.sim.pairs].sort(()=>Math.random()-0.5);
+    inner.innerHTML='<div class="two-col"><div id="termCol"></div><div id="defCol"></div></div>';
+    const tc=document.getElementById('termCol'), dc=document.getElementById('defCol');
+    let selTerm=null; let matched=0;
+    terms.forEach(p=>{
+      const c=document.createElement('div'); c.className='chip-word'; c.style.display='block'; c.textContent=p.term; c.dataset.term=p.term;
+      c.onclick=()=>{
+        if(c.classList.contains('correct'))return;
+        [...tc.children].forEach(x=>x.classList.remove('sel'));
+        c.classList.add('sel'); selTerm=p.term; sndClick();
+      };
+      tc.appendChild(c);
+    });
+    defs.forEach(p=>{
+      const c=document.createElement('div'); c.className='chip-word'; c.style.display='block'; c.textContent=p.def;
+      c.onclick=()=>{
+        if(c.classList.contains('correct')||!selTerm)return;
+        if(selTerm===p.term){
+          c.classList.add('correct'); sndOk(); matched++;
+          [...tc.children].forEach(x=>{ if(x.dataset.term===selTerm){x.classList.remove('sel'); x.classList.add('correct');} });
+          selTerm=null;
+          if(matched===m.sim.pairs.length){
+            document.getElementById('simFeedback').className='feedback ok';
+            document.getElementById('simFeedback').textContent='All matched! Great job!';
+          }
+        } else { c.classList.add('wrong'); sndNo(); setTimeout(()=>c.classList.remove('wrong'),500); }
+      };
+      dc.appendChild(c);
+    });
+  } else if(m.sim.type==='clickverbs'){
+    const words=m.sim.passage.split(' ');
+    let picked=[]; let inner2='<p class="passage">';
+    words.forEach((w,i)=>{
+      let clean=w.replace(/[.,]/g,'');
+      inner2+=`<span class="word" data-w="${clean}" onclick="pickVerb(this)">${w}</span> `;
+    });
+    inner2+='</p>';
+    inner.innerHTML=inner2;
+    window.pickVerb=function(el){
+      sndClick();
+      const w=el.dataset.w;
+      const isVerb=m.sim.verbs.includes(w);
+      el.classList.toggle('picked');
+      const feedback=document.getElementById('simFeedback');
+      const picks=[...document.querySelectorAll('.passage .word.picked')].map(x=>x.dataset.w);
+      let correctPicks = picks.filter(p=>m.sim.verbs.includes(p)).length;
+      feedback.className='feedback';
+      feedback.textContent='Selected: '+picks.length+' | Correct verbs found: '+correctPicks+'/'+m.sim.verbs.length;
+      if(correctPicks===m.sim.verbs.length && picks.length===m.sim.verbs.length){ feedback.className='feedback ok'; sndOk(); }
+    };
+  } else if(m.sim.type==='fillblank'){
+    let inner2='';
+    m.sim.items.forEach((it,i)=>{
+      inner2+=`<div style="margin-bottom:10px; font-size:12.5px;">${i+1}. ${it.sentence.replace('___','<select class="fb" id="fb'+i+'"><option value="-1">-- choose --</option>'+it.options.map((o,oi)=>`<option value="${oi}">${o}</option>`).join('')+'</select>')}</div>`;
+    });
+    inner2+='<button class="btn" id="checkFb">Check Answers</button>';
+    inner.innerHTML=inner2;
+    document.getElementById('checkFb').onclick=()=>{
+      let correct=0;
+      m.sim.items.forEach((it,i)=>{
+        const sel=document.getElementById('fb'+i);
+        if(parseInt(sel.value)===it.a){ correct++; sel.style.borderColor='var(--leaf)'; } else { sel.style.borderColor='var(--danger)'; }
+      });
+      const fb=document.getElementById('simFeedback');
+      fb.className='feedback '+(correct===m.sim.items.length?'ok':'no');
+      fb.textContent='Score: '+correct+'/'+m.sim.items.length;
+      correct===m.sim.items.length? sndOk(): sndNo();
+    };
+  } else if(m.sim.type==='comprehension'){
+    let inner2='';
+    m.sim.items.forEach((it,i)=>{
+      inner2+=`<div class="qcard"><div class="qtext">${i+1}. ${it.q}</div>`+it.opts.map((o,oi)=>`<button class="opt" onclick="ansComp(this,${i},${oi})" data-i="${i}" data-oi="${oi}">${String.fromCharCode(65+oi)}. ${o}</button>`).join('')+'</div>';
+    });
+    inner.innerHTML=inner2;
+    window.compAns=window.compAns||{};
+    window.ansComp=function(el,qi,oi){
+      sndClick();
+      document.querySelectorAll(`.opt[data-i="${qi}"]`).forEach(b=>b.classList.remove('sel'));
+      el.classList.add('sel');
+      window.compAns[qi]=oi;
+      const total=m.sim.items.length;
+      const answered=Object.keys(window.compAns).length;
+      if(answered===total){
+        let correct=0;
+        m.sim.items.forEach((it,i)=>{ if(window.compAns[i]===it.a) correct++; });
+        document.getElementById('simFeedback').className='feedback '+(correct===total?'ok':'no');
+        document.getElementById('simFeedback').textContent='Score: '+correct+'/'+total;
+        correct===total? sndOk(): sndNo();
+      }
+    };
+  }
+}
+function checkOrder(m){
+  let correct=0;
+  simState.picked.forEach((id,idx)=>{
+    const item=m.sim.items.find(x=>x.id===id);
+    if(item.correctPos===idx+1) correct++;
+  });
+  const fb=document.getElementById('simFeedback');
+  fb.className='feedback '+(correct===m.sim.items.length?'ok':'no');
+  fb.textContent='Correct order: '+correct+'/'+m.sim.items.length;
+  correct===m.sim.items.length? sndOk(): sndNo();
+}
+
+/* ===================== RENDER LKPD (WORKSHEET) ===================== */
+let lkpdAnswers={};
+let lkpdName='';
+let lkpdClass='';
+function renderLkpd(){
+  const m=MEETINGS.find(x=>x.id===currentMeeting);
+  lkpdAnswers={};
+  const box=document.getElementById('lkpdBody');
+  if(isLocked('lkpd')){ box.innerHTML=gateHTML('lkpd'); return; }
+  box.innerHTML=`<div id="lkpdIntro" class="card" style="max-width:500px;margin:0 auto;">
+    <h3>Student Information</h3>
+    <label style="font-size:12px;color:var(--muted);">Nama Lengkap</label>
+    <input type="text" id="studentName" placeholder="Type your name here...">
+    <label style="font-size:12px;color:var(--muted); margin-top:10px; display:block;">Kelas</label>
+    <input type="text" id="studentClass" placeholder="e.g. XII-1">
+    <button class="btn" style="margin-top:12px;" onclick="startQuiz()">Start Worksheet — Meeting ${m.id}</button>
+  </div><div id="quizArea" style="display:none;"></div>`;
+}
+function startQuiz(){
+  const name=document.getElementById('studentName').value.trim();
+  const kelas=document.getElementById('studentClass').value.trim();
+  if(!name){ alert('Silakan isi nama terlebih dahulu.'); return; }
+  if(!kelas){ alert('Silakan isi kelas terlebih dahulu.'); return; }
+  lkpdName=name; lkpdClass=kelas; sndClick();
+  const m=MEETINGS.find(x=>x.id===currentMeeting);
+  document.getElementById('lkpdIntro').style.display='none';
+  const qa=document.getElementById('quizArea');
+  qa.style.display='block';
+  let html='<div class="quiz-wrap">';
+  m.quiz.forEach((q,i)=>{
+    html+=`<div class="qcard"><div class="qn">Question ${i+1} of ${m.quiz.length}</div><div class="qtext">${q.q}</div>`+
+      q.opts.map((o,oi)=>`<button class="opt" data-qi="${i}" data-oi="${oi}" onclick="pickOpt(this)">${String.fromCharCode(65+oi)}. ${o}</button>`).join('')+
+      '</div>';
+  });
+  html+='<h2 class="panehead" style="margin-top:18px;">✍️ Essay / Uraian</h2>';
+  m.essay.forEach((eq,i)=>{
+    html+=`<div class="qcard"><div class="qn">Essay ${i+1} of ${m.essay.length}</div><div class="qtext">${eq.q}</div>`+
+      `<textarea id="lkpdEssayInput_${i}" rows="4" placeholder="Type your answer here..." style="width:100%; padding:10px 12px; border-radius:8px; border:1px solid #245066; background:#04141f; color:var(--ink); font-size:12.5px; font-family:inherit; resize:vertical;"></textarea></div>`;
+  });
+  html+='<div style="text-align:center; margin-top:8px;"><button class="btn amber" onclick="submitLkpd()">Submit Worksheet</button></div></div>';
+  qa.innerHTML=html;
+}
+function pickOpt(el){
+  sndClick();
+  const qi=el.dataset.qi;
+  document.querySelectorAll(`.opt[data-qi="${qi}"]`).forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');
+  lkpdAnswers[qi]=parseInt(el.dataset.oi);
+}
+async function submitLkpd(){
+  const m=MEETINGS.find(x=>x.id===currentMeeting);
+  if(Object.keys(lkpdAnswers).length < m.quiz.length){ alert('Mohon jawab semua soal Pilihan Ganda terlebih dahulu.'); return; }
+  const essayAnswers=m.essay.map((eq,i)=>{
+    const el=document.getElementById('lkpdEssayInput_'+i);
+    return el ? el.value.trim() : '';
+  });
+  if(essayAnswers.some(a=>a.length===0)){ alert('Mohon jawab semua soal Essay terlebih dahulu.'); return; }
+  let correct=0;
+  m.quiz.forEach((q,i)=>{ if(lkpdAnswers[i]===q.a) correct++; });
+  const record={
+    name:lkpdName, kelas:lkpdClass, meeting:m.id, score:correct, total:m.quiz.length, time:new Date().toLocaleString('id-ID'),
+    essay1:essayAnswers[0]||'', essay2:essayAnswers[1]||'', essay3:essayAnswers[2]||'', essay4:essayAnswers[3]||'', essay5:essayAnswers[4]||''
+  };
+  const all=JSON.parse(localStorage.getItem('ffLabResults')||'[]');
+  all.push(record);
+  localStorage.setItem('ffLabResults', JSON.stringify(all));
+  sndSubmit();
+  document.getElementById('lkpdBody').innerHTML=`<div class="center"><div style="font-size:40px;">⏳</div><h3 style="color:var(--cyan);">Menyimpan jawaban...</h3><p style="color:var(--muted); font-size:12.5px;">Mohon tunggu sebentar.</p></div>`;
+  const result = await submitToBackend(record);
+  const statusLine = API_URL
+    ? (result && result.ok ? '<p style="color:var(--leaf); font-size:11.5px; margin-top:4px;">☁ Tersimpan online — dapat dilihat guru dari perangkat manapun.</p>' : '<p style="color:var(--amber); font-size:11.5px; margin-top:4px;">⚠ Gagal tersambung ke server online. Data tetap tersimpan di perangkat ini.</p>')
+    : '<p style="color:var(--muted); font-size:11px; margin-top:4px;">Mode offline — data tersimpan di perangkat ini saja.</p>';
+  document.getElementById('lkpdBody').innerHTML=`<div class="center"><div style="font-size:40px;">✅</div><h3 style="color:var(--leaf);">Worksheet Submitted!</h3><p style="color:var(--muted); font-size:12.5px;">Thank you, ${lkpdName} (${lkpdClass}). Your answers for Meeting ${m.id} have been recorded.<br>Ask your teacher for your results.</p>${statusLine}<button class="btn secondary" onclick="renderLkpd()">Fill Another Worksheet</button></div>`;
+}
+
+/* ===================== SIMULATION ANSWER KEY (TEACHER) ===================== */
+function checkSimkeyPass(){
+  const val=document.getElementById('simkeyPass').value;
+  if(val===generatePanelOtp('SIMKEY')){
+    sndOk();
+    document.getElementById('simkeyLock').style.display='none';
+    document.getElementById('simkeyBody').style.display='block';
+    buildKeyChips(document.getElementById('chipsSimkey'), ()=>keyMeetingSim, v=>keyMeetingSim=v, renderSimkey);
+    renderSimkey();
+  } else {
+    sndNo();
+    document.getElementById('simkeyErr').textContent='Kode OTP salah atau sudah kedaluwarsa (berlaku 15 menit). Lihat kode terbaru di Tab OTP.';
+  }
+}
+function renderSimkey(){
+  const m=MEETINGS.find(x=>x.id===keyMeetingSim);
+  const box=document.getElementById('simkeyContent');
+  const s=m.sim;
+  let html=`<div class="card"><h3>Meeting ${m.id} — ${s.title}</h3>`;
+  if(s.type==='order'){
+    html+='<ol>'+ [...s.items].sort((a,b)=>a.correctPos-b.correctPos).map(it=>`<li>${it.text}</li>`).join('') +'</ol>';
+  } else if(s.type==='sort2'){
+    html+=`<p><b>${s.zoneA}:</b></p><ul>`+ s.items.filter(it=>it.correct==='A').map(it=>`<li>${it.text}</li>`).join('') +'</ul>';
+    html+=`<p><b>${s.zoneB}:</b></p><ul>`+ s.items.filter(it=>it.correct==='B').map(it=>`<li>${it.text}</li>`).join('') +'</ul>';
+  } else if(s.type==='match'){
+    html+='<ul>'+ s.pairs.map(p=>`<li><b>${p.term}</b> — ${p.def}</li>`).join('') +'</ul>';
+  } else if(s.type==='clickverbs'){
+    html+=`<p style="margin-bottom:6px;">${s.passage}</p><p><b>Action verbs:</b> ${s.verbs.join(', ')}</p>`;
+  } else if(s.type==='fillblank'){
+    html+='<ol>'+ s.items.map(it=>`<li>${it.sentence.replace('___','<b>'+it.options[it.a]+'</b>')}</li>`).join('') +'</ol>';
+  } else if(s.type==='comprehension'){
+    html+='<ol>'+ s.items.map(it=>`<li>${it.q}<br><b>Answer: ${String.fromCharCode(65+it.a)}. ${it.opts[it.a]}</b></li>`).join('') +'</ol>';
+  }
+  html+='</div>';
+  box.innerHTML=html;
+}
+
+/* ===================== WORKSHEET ANSWER KEY (TEACHER) ===================== */
+function checkLkpdkeyPass(){
+  const val=document.getElementById('lkpdkeyPass').value;
+  if(val===generatePanelOtp('LKPDKEY')){
+    sndOk();
+    document.getElementById('lkpdkeyLock').style.display='none';
+    document.getElementById('lkpdkeyBody').style.display='block';
+    buildKeyChips(document.getElementById('chipsLkpdkey'), ()=>keyMeetingLkpd, v=>keyMeetingLkpd=v, renderLkpdkey);
+    renderLkpdkey();
+  } else {
+    sndNo();
+    document.getElementById('lkpdkeyErr').textContent='Kode OTP salah atau sudah kedaluwarsa (berlaku 15 menit). Lihat kode terbaru di Tab OTP.';
+  }
+}
+function renderLkpdkey(){
+  const m=MEETINGS.find(x=>x.id===keyMeetingLkpd);
+  const box=document.getElementById('lkpdkeyContent');
+  let html=`<div class="quiz-wrap">`;
+  m.quiz.forEach((q,i)=>{
+    html+=`<div class="qcard"><div class="qn">Question ${i+1} of ${m.quiz.length}</div><div class="qtext">${q.q}</div>`+
+      q.opts.map((o,oi)=> oi===q.a ? `<div class="opt sel" style="border-color:var(--leaf); background:#123c2f;">✔ ${String.fromCharCode(65+oi)}. ${o}</div>` : `<div class="opt" style="opacity:.6;">${String.fromCharCode(65+oi)}. ${o}</div>`).join('')+
+      '</div>';
+  });
+  html+='<h2 class="panehead" style="margin-top:18px;">✍️ Essay / Uraian — Pedoman Penilaian</h2>';
+  m.essay.forEach((eq,i)=>{
+    html+=`<div class="qcard"><div class="qn">Essay ${i+1} of ${m.essay.length}</div><div class="qtext">${eq.q}</div>`+
+      `<div class="tp-box"><b>Pedoman Jawaban:</b> ${eq.key}</div></div>`;
+  });
+  html+='</div>';
+  box.innerHTML=html;
+}
+
+/* ===================== RESULTS (TEACHER, TIME-BASED OTP) ===================== */
+let resultsPassCache='';
+async function checkResultsPass(){
+  const val=document.getElementById('resPass').value;
+  if(val===generatePanelOtp('RESULTS')){
+    sndOk();
+    resultsPassCache=val;
+    document.getElementById('resultsLock').style.display='none';
+    document.getElementById('resultsBody').style.display='block';
+    await renderResultsTable();
+  } else {
+    sndNo();
+    document.getElementById('resErr').textContent='Kode OTP salah atau sudah kedaluwarsa (berlaku 15 menit). Lihat kode terbaru di Tab OTP.';
+  }
+}
+async function renderResultsTable(){
+  const tbody=document.getElementById('resTbody');
+  tbody.innerHTML='<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:20px;">⏳ Memuat data...</td></tr>';
+  let all=[]; let sourceNote='';
+  if(API_URL){
+    const remote=await fetchSubmissions(resultsPassCache);
+    if(remote && remote.ok && Array.isArray(remote.data)){
+      all=remote.data;
+      sourceNote='<p style="color:var(--leaf); font-size:11px; margin-bottom:8px;">☁ Data online — dapat diakses dari perangkat manapun.</p>';
+    } else {
+      all=JSON.parse(localStorage.getItem('ffLabResults')||'[]');
+      sourceNote='<p style="color:var(--amber); font-size:11px; margin-bottom:8px;">⚠ Tidak dapat mengambil data online, menampilkan data lokal perangkat ini saja.</p>';
+    }
+  } else {
+    all=JSON.parse(localStorage.getItem('ffLabResults')||'[]');
+    sourceNote='<p style="color:var(--muted); font-size:11px; margin-bottom:8px;">Mode offline — menampilkan data lokal perangkat ini saja. Lihat panduan Code.gs untuk mengaktifkan mode online.</p>';
+  }
+  document.getElementById('resSourceNote').innerHTML=sourceNote;
+  tbody.innerHTML='';
+  all.forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    const m=MEETINGS.find(x=>x.id===Number(r.meeting));
+    let essayHtml='<span style="color:var(--muted); font-size:11px;">-</span>';
+    if(m && m.essay){
+      const items=m.essay.map((eq,ei)=>{
+        const ans=r['essay'+(ei+1)]||'<i style="color:var(--muted);">(kosong)</i>';
+        return `<div style="margin-bottom:6px;"><b style="color:var(--cyan);">${ei+1}. ${eq.q}</b><br>${ans}</div>`;
+      }).join('');
+      essayHtml=`<details><summary style="cursor:pointer;color:var(--cyan);">Lihat Essay</summary><div style="max-width:320px; white-space:pre-wrap; font-size:11.5px; margin-top:6px;">${items}</div></details>`;
+    }
+    tr.innerHTML=`<td>${i+1}</td><td>${r.name}</td><td>${r.kelas||'-'}</td><td>Meeting ${r.meeting}</td><td>${r.score}/${r.total}</td><td>${r.time}</td><td>${essayHtml}</td>`;
+    tbody.appendChild(tr);
+  });
+  if(all.length===0){ tbody.innerHTML='<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:20px;">Belum ada data submission.</td></tr>'; }
+  window._resCache=all;
+}
+function exportCSV(){
+  const all=window._resCache || JSON.parse(localStorage.getItem('ffLabResults')||'[]');
+  const csvEsc=(v)=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  let csv='No,Nama,Kelas,Meeting,Skor,Total,Waktu,Essay1,Essay2,Essay3,Essay4,Essay5\n';
+  all.forEach((r,i)=>{
+    csv+=[i+1, r.name, r.kelas||'-', r.meeting, r.score, r.total, r.time, r.essay1, r.essay2, r.essay3, r.essay4, r.essay5].map(csvEsc).join(',')+'\n';
+  });
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='hasil_lkpd_friendly_future.csv'; a.click();
+  sndClick();
+}
+async function clearResults(){
+  if(confirm('Yakin ingin menghapus semua data Hasil Kerja LKPD? Tindakan ini tidak bisa dibatalkan.')){
+    localStorage.removeItem('ffLabResults');
+    if(API_URL){ await resetSubmissionsOnBackend(resultsPassCache); }
+    await renderResultsTable(); sndNo();
+  }
+}
+
+/* ===================== RESET BUTTON ===================== */
+document.getElementById('resetBtn').onclick=()=>{
+  if(confirm('Reset progres Theory / Simulation / Worksheet pada tampilan saat ini?')){
+    sndClick(); renderAll();
+  }
+};
+
+/* ===================== RENDER ALL ===================== */
+function renderAll(){ renderTheory(); renderSim(); renderLkpd(); }
+renderAll();
+</script>
+</body>
+</html>
